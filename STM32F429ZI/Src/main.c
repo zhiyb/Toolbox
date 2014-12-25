@@ -36,7 +36,6 @@
 #include "stm32f4xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-#include "parameters.h"
 #include "ctrl.h"
 #include "communication.h"
 #include "adc.h"
