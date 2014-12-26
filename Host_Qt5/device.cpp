@@ -5,6 +5,9 @@
 Device::Device(QObject *parent) :
 	QObject(parent)
 {
+	qRegisterMetaType<struct message_t>("message_t");
+	qRegisterMetaType<struct info_t>("info_t");
+	qRegisterMetaType<struct controller_t>("controller_t");
 	con = new Connection;
 }
 
@@ -19,7 +22,8 @@ bool Device::init(void)
 {
 	connect(&conThread, SIGNAL(started()), con, SLOT(loop()));
 	connect(con, SIGNAL(error(QString)), this, SLOT(error(QString)));
-	connect(con, SIGNAL(responseInfo(QString)), this, SLOT(responseInfo(QString)));
+	connect(con, SIGNAL(info(const struct info_t&)), this, SLOT(info(const struct info_t&)));
+	connect(con, SIGNAL(controller(const struct controller_t&)), this, SLOT(controller(const struct controller_t&)));
 	if (!con->init()) {
 		qDebug() << "Connection::init failed";
 		return false;

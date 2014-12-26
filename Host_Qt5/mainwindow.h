@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QHBoxLayout>
 #include "device.h"
 
 class MainWindow : public QMainWindow
@@ -16,11 +17,13 @@ public:
 protected:
 	bool event(QEvent *e);
 
+private slots:
+	void controller(controller_t s);
+
 private:
+	bool init;
 	Device *dev;
-	struct {
-		bool init;
-	} data;
+	QHBoxLayout *layout;
 };
 
 #endif // MAINWINDOW_H

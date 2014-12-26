@@ -1,0 +1,105 @@
+#include <QtWidgets>
+#include <QDebug>
+#include "controller.h"
+
+Controller::Controller(const controller_t &s, QWidget *parent) : QGroupBox(parent)
+{
+	layout = new QVBoxLayout(this);
+	setLayout(layout);
+	rebuild(s);
+}
+
+Controller::~Controller()
+{
+}
+
+void Controller::valueChanged(quint8 id)
+{
+	for (int i = 0; i < ctrl.controls.count(); i++) {
+		struct controller_t::set_t &set = ctrl.controls[i];
+		if (set.id != id)
+			continue;
+		if (set.readOnly()) {
+			qWarning(QString("Value changed for read-only %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+			break;
+		}
+		struct message_t msg;
+		msg.command = CMD_CONTROLLER;
+		msg.id = ctrl.id;
+		struct message_t::set_t msgSet;
+		msgSet.id = set.id;
+		msgSet.bytes = set.bytes();
+		msgSet.value = set.value;
+		msg.settings.enqueue(msgSet);
+		emit message(msg);
+		break;
+	}
+}
+
+void Controller::valueChanged(void)
+{
+	for (int i = 0; i < ctrl.controls.count(); i++) {
+		struct controller_t::set_t &set = ctrl.controls[i];
+		switch (set.type & ~CTRL_READONLY) {
+		case CTRL_BYTE1:
+		case CTRL_BYTE2:
+		case CTRL_BYTE3:
+		case CTRL_BYTE4: {
+			QLabel *l = findChild<QLabel *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
+			if (!l) {
+				qWarning(QString("QLabel not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+				continue;
+			}
+			quint32 current = l->text().mid(l->text().lastIndexOf(':') + 1).toLong();
+			if (!set.readOnly()) {
+				QSlider *s = findChild<QSlider *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
+				if (!s) {
+					qWarning(QString("QSlider not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+					continue;
+				}
+				if (set.value != current)
+					s->setValue(set.value);
+				else if ((quint32)s->value() != current) {
+					set.value = s->value();
+					valueChanged(set.id);
+				}
+			}
+			if (set.value != current)
+				l->setText(set.name + ":\t" + QString::number(set.value));
+		}
+		}
+	}
+}
+
+void Controller::rebuild(const controller_t &s)
+{
+	while (layout->count())
+		layout->removeItem(layout->itemAt(0));
+	ctrl = s;
+	setObjectName(QString::number(ctrl.id));
+	setTitle(ctrl.name);
+	for (int i = 0; i < ctrl.controls.count(); i++) {
+		struct controller_t::set_t set = ctrl.controls.at(i);
+		switch (set.type & ~CTRL_READONLY) {
+		case CTRL_BYTE1:
+		case CTRL_BYTE2:
+		case CTRL_BYTE3:
+		case CTRL_BYTE4: {
+			QLabel *l = new QLabel(set.name + ":\t" + QString::number(set.value));
+			l->setObjectName(QString::number(set.id));
+			layout->addWidget(l, 0, Qt::AlignHCenter);
+			if (!set.readOnly()) {
+				QSlider *s = new QSlider(Qt::Vertical);
+				s->setObjectName(QString::number(set.id));
+				s->setMinimum(set.min);
+				s->setMaximum(set.max);
+				s->setValue(set.value);
+				s->setMaximumHeight(QWIDGETSIZE_MAX);
+				connect(s, SIGNAL(valueChanged(int)), this, SLOT(valueChanged()));
+				layout->addWidget(s/*, 0, Qt::AlignHCenter*/);
+			}
+			break;
+		}
+		}
+	}
+}

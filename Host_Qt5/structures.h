@@ -4,24 +4,36 @@
 #include <inttypes.h>
 #include <QtGlobal>
 #include <QVector>
+#include <QQueue>
 #include <QString>
+#include <instructions.h>
 
 struct message_t {
-	char command;
-	struct set_t {
-		quint8 id, btyes;
-		quint32 value;
-	};
-	QVector<set_t> settings;
-};
+	message_t(void) : id(-1) {}
+	bool similar(const message_t &msg);
 
-struct control_t {
+	char command;
 	quint8 id;
 	struct set_t {
-		enum Types {Toggle, Byte1, Byte2, Byte3, Byte4, Button, Radio, CheckBox, Selector, Selected, ReadOnly = 0x80};
-
-		quint8 id, type, min, max;
+		quint8 id, bytes;
 		quint32 value;
+	};
+	QQueue<set_t> settings;
+};
+
+struct info_t {
+	QString name;
+};
+
+struct controller_t {
+	quint8 id;
+	QString name;
+	struct set_t {
+		bool readOnly(void) const {return type & CTRL_READONLY;}
+		quint8 bytes(void) const {return type & 0x07;}
+
+		quint8 id, type;
+		quint32 min, max, value;
 		QString name;
 	};
 	QVector<set_t> controls;

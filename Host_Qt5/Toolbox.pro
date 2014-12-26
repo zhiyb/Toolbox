@@ -17,10 +17,13 @@ INCLUDEPATH += ../Inc
 SOURCES += main.cpp\
         mainwindow.cpp \
     connection.cpp \
-    device.cpp
+    device.cpp \
+    controller.cpp \
+    structures.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
     device.h \
     ../Inc/instructions.h \
-    structures.h
+    structures.h \
+    controller.h

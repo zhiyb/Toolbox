@@ -125,6 +125,8 @@ void ConnectionSelection::accept(void)
 Connection::Connection(QObject *parent) :
 	QObject(parent)
 {
+	queueLock = false;
+	exit = false;
 }
 
 void Connection::waitForWrite(int msec)
@@ -175,7 +177,6 @@ void Connection::reset(void)
 	}
 	//sendChar(CMD_ACK);
 	//waitForWrite();
-	ready = true;
 }
 
 void Connection::requestInfo(void)
@@ -231,12 +232,30 @@ void Connection::write(QByteArray &data)
 	con->write(data);
 }
 
-int Connection::readChar(void)
+void Connection::writeValue(const quint32 value, const quint32 bytes)
+{
+	con->write((char *)&value, bytes);
+}
+
+int Connection::readChar(int msec)
 {
 	char c;
-	if (con->read(&c, 1) != 1)
+	waitForRead(1, msec);
+	if (con->bytesAvailable() < 1)
 		return -1;
+	con->read(&c, 1);
 	return c;
+}
+
+quint32 Connection::readValue(const quint32 bytes, int msec)
+{
+	quint32 value = 0;
+	waitForRead(bytes, msec);
+	if (con->bytesAvailable() < bytes)
+		return -1;
+	con->read((char *)&value, bytes);
+	//qDebug() << "Connection::readValue" << bytes << msec << value;
+	return value;
 }
 
 QString Connection::readString(void)
@@ -244,8 +263,7 @@ QString Connection::readString(void)
 	char c;
 	QString str;
 	forever {
-		waitForRead(1);
-		c = readChar();
+		c = readChar(-1);
 		if (c == '\0')
 			break;
 		str.append(c);
@@ -253,32 +271,81 @@ QString Connection::readString(void)
 	return str;
 }
 
-void Connection::writeMessage(const message_t& msg)
+void Connection::writeMessage(message_t msg)
 {
 	//qDebug() << "writeMessage";
 	writeChar(msg.command);
 	waitForWrite();
 	char c;
-	do
-		waitForRead(1);
 	while ((c = readData()) == 0);
 	if (c != CMD_ACK) {
 		emit error(QString("No ACK received for command '%1': %2").arg(msg.command).arg((int)c, 0, 16));
 		return;
 	}
+	if (msg.id != (quint8)-1)
+		writeChar(msg.id);
+	while (msg.settings.count()) {
+		struct message_t::set_t set = msg.settings.dequeue();
+		writeChar(set.id);
+		writeValue(set.value, set.bytes);
+	}
 }
 
-char Connection::readData(void)
+struct info_t Connection::readInfo(void)
+{
+	struct info_t info;
+	info.name = readString();
+	return info;
+}
+
+struct controller_t Connection::readController(void)
+{
+	//qDebug() << "Connection::readController";
+	struct controller_t ctrl;
+	ctrl.id = readChar();
+	if (ctrl.id == (quint8)-1) {
+		emit error("Invalid controller ID");
+		return ctrl;
+	}
+	ctrl.name = readString();
+	forever {
+		struct controller_t::set_t set;
+		set.id = readChar();
+		if (set.id == (quint8)-1)
+			return ctrl;
+		set.type = readChar();
+		switch (set.type & ~CTRL_READONLY) {
+		case CTRL_BYTE1:
+		case CTRL_BYTE2:
+		case CTRL_BYTE3:
+		case CTRL_BYTE4:
+			if (!set.readOnly()) {
+				set.min = readValue(set.bytes());
+				set.max = readValue(set.bytes());
+			}
+			set.value = readValue(set.bytes());
+			set.name = readString();
+			break;
+		/*case CMD_END:
+			return ctrl;*/
+		}
+		ctrl.controls.append(set);
+	}
+}
+
+char Connection::readData(int msec)
 {
 	//qDebug() << "readData";
 	char c;
-	waitForRead(1, 1);
-	switch (c = readChar()) {
-	case CMD_INFO:
-		emit responseInfo(readString());
-		break;
+	switch (c = readChar(msec)) {
 	case CMD_ACK:
 		return CMD_ACK;
+	case CMD_INFO:
+		emit info(readInfo());
+		break;
+	case CMD_CONTROLLER:
+		emit controller(readController());
+		break;
 	default:
 		return c;
 	}
@@ -289,8 +356,18 @@ void Connection::loop(void)
 {
 	while (!exit) {
 		//qDebug() << "loop.";
-		if (ready && queue.count() != 0)
+		if (!queueLock && queue.count() != 0)
 			writeMessage(queue.dequeue());
-		readData();
+		readData(10);
 	}
+	reset();
+}
+
+void Connection::enqueue(const message_t &msg)
+{
+	queueLock = true;
+	if (!queue.isEmpty() && queue.last().similar(msg))
+		queue.removeLast();
+	queueLock = false;
+	queue.enqueue(msg);
 }

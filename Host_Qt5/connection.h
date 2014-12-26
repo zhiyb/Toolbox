@@ -54,12 +54,13 @@ public:
 signals:
 	//void failed(void);
 	void error(QString str);
-	void responseInfo(QString str);
+	void info(info_t s);
+	void controller(controller_t s);
 
 public slots:
 	void loop(void);
 	void quit(void) {exit = true;}
-	void enqueue(const struct message_t& msg) {queue.enqueue(msg);}
+	void enqueue(const struct message_t &msg);
 	void requestInfo(void);
 
 private slots:
@@ -67,12 +68,16 @@ private slots:
 	void reset(void);
 
 private:
-	void write(QByteArray& data);
+	struct info_t readInfo(void);
+	struct controller_t readController(void);
+	void write(QByteArray &data);
 	void writeChar(const char c);
+	void writeValue(const quint32 value, const quint32 bytes);
 	void writeRepeatedChar(const char c, const qint64 size);
-	void writeMessage(const struct message_t& msg);
-	int readChar(void);
-	char readData(void);
+	void writeMessage(message_t msg);
+	int readChar(int msec = COMMUNICATION_WAIT);
+	quint32 readValue(const quint32 bytes, int msec = COMMUNICATION_WAIT);
+	char readData(int msec = COMMUNICATION_WAIT);
 	QString readString(void);
 	void waitForWrite(int msec = COMMUNICATION_WAIT);
 	void waitForRead(const qint64 size, int msec = COMMUNICATION_WAIT);
@@ -83,8 +88,7 @@ private:
 	QIODevice *con;
 	QQueue<struct message_t> queue;
 	int type;
-	bool ready;
-	volatile bool exit;
+	volatile bool exit, queueLock;
 };
 
 #endif // CONNECTION_H
