@@ -96,7 +96,7 @@ void Controller::rebuild(const controller_t &s)
 				s->setValue(set.value);
 				s->setMaximumHeight(QWIDGETSIZE_MAX);
 				connect(s, SIGNAL(valueChanged(int)), this, SLOT(valueChanged()));
-				layout->addWidget(s/*, 0, Qt::AlignHCenter*/);
+				layout->addWidget(s, 0, Qt::AlignHCenter);
 			}
 			break;
 		}

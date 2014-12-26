@@ -46,10 +46,11 @@ bool MainWindow::event(QEvent *e)
 
 void MainWindow::controller(controller_t s)
 {
-	Controller *w = layout->findChild<Controller *>(QString::number(s.id), Qt::FindDirectChildrenOnly);
+	Controller *w = findChild<Controller *>(QString::number(s.id), Qt::FindDirectChildrenOnly);
 	if (!w) {
 		Controller *c = new Controller(s, this);
 		connect(c, SIGNAL(message(message_t)), dev, SLOT(send(message_t)));
 		layout->addWidget(c);
-	}
+	} else
+		w->rebuild(s);
 }
