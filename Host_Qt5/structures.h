@@ -10,7 +10,7 @@
 
 struct message_t {
 	message_t(void) : id(-1) {}
-	bool similar(const message_t &msg);
+	bool similar(const message_t &msg) const;
 
 	char command;
 	quint8 id;
