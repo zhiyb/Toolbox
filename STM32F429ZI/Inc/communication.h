@@ -12,5 +12,6 @@ void sendString(char *string);
 int receiveChar(uint32_t timeout);
 uint32_t receiveData(uint8_t *data, uint32_t count, uint32_t timeout);
 void sendChar(char c);
+void sendValue(uint32_t value, uint8_t bytes);
 
 #endif // COMMUNICATION_H

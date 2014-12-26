@@ -128,6 +128,11 @@ void sendChar(char c)
 	sendData((uint8_t *)&c, 1);
 }
 
+void sendValue(uint32_t value, uint8_t bytes)
+{
+	sendData((uint8_t *)&value, bytes);
+}
+
 void sendData(uint8_t *buffer, uint32_t length)
 {
 	pollSending();
