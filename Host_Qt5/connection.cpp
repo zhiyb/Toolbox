@@ -368,6 +368,6 @@ void Connection::enqueue(const message_t &msg)
 	queueLock = true;
 	if (!queue.isEmpty() && queue.last().similar(msg))
 		queue.removeLast();
-	queueLock = false;
 	queue.enqueue(msg);
+	queueLock = false;
 }
