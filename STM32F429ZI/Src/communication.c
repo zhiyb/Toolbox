@@ -4,6 +4,7 @@
 #include "handles.h"
 
 static HAL_StatusTypeDef UART_WaitOnFlagUntilTimeout(UART_HandleTypeDef *huart, uint32_t Flag, FlagStatus Status, uint32_t Timeout);
+void clearOverrun(UART_HandleTypeDef *huart);
 
 static HAL_StatusTypeDef UART_WaitOnFlagUntilTimeout(UART_HandleTypeDef *huart, uint32_t Flag, FlagStatus Status, uint32_t Timeout)
 {
@@ -77,8 +78,15 @@ static HAL_StatusTypeDef UART_WaitOnFlagUntilTimeout(UART_HandleTypeDef *huart, 
 	while (HAL_DMAEx_MultiBufferStart(HUART.hdmarx, (uint32_t)&HUART.Instance->DR, (uint32_t)uartBuffer[0], (uint32_t)uartBuffer[1], PKG_SIZE) != HAL_OK);
 }*/
 
+void clearOverrun(UART_HandleTypeDef *huart)
+{
+	if(__HAL_UART_GET_FLAG(huart, UART_FLAG_ORE) == SET)
+		__HAL_UART_CLEAR_OREFLAG(huart);
+}
+
 int receiveChar(uint32_t timeout)
 {
+	clearOverrun(&HUART);
 	if(UART_WaitOnFlagUntilTimeout(&HUART, UART_FLAG_RXNE, RESET, timeout) != HAL_OK)
 		return -1;
 	if(HUART.Init.Parity == UART_PARITY_NONE)
