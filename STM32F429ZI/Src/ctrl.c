@@ -28,7 +28,8 @@ void ctrlDeviceInfo(void)
 
 void ctrlRootLoop(void)
 {
-	char buff[64], id;
+	//char buff[64];
+	char id;
 	for (;;) {
 		pause = 0;
 		switch (receiveChar(-1)) {
@@ -56,12 +57,13 @@ void ctrlRootLoop(void)
 			ctrlDeviceInfo();
 			break;
 		default:
-			sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
+			/*sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
 			sendString(buff);
 			pollSending();
 			sprintf(buff, "ADC[0]: %u\t ADC[1]: %u\r\n", adc[0], adc[1]);
 			sendString(buff);
-			pollSending();
+			pollSending();*/
+			break;
 		}
 	}
 }

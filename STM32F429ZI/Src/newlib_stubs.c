@@ -4,6 +4,7 @@
  *  Created on: 2 Nov 2010
  *      Author: nanoage.co.uk
  */
+#if 0
 #include "stm32f4xx_hal.h"
 #include <errno.h>
 #include <sys/stat.h>
@@ -42,3 +43,4 @@ char * stack = (char*) __get_MSP();
     return (caddr_t) prev_heap_end;
 
 }
+#endif
