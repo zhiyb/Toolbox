@@ -1,11 +1,11 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 19/12/2014 15:32:06
+  * Date               : 29/01/2015 01:19:15
   * Description        : Main program body
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2014 STMicroelectronics
+  * COPYRIGHT(c) 2015 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -39,6 +39,7 @@
 #include "ctrl.h"
 #include "communication.h"
 #include "adc.h"
+#include "dac.h"
 #include "handles.h"
 /* USER CODE END Includes */
 
@@ -50,8 +51,7 @@ DAC_HandleTypeDef hdac;
 
 RNG_HandleTypeDef hrng;
 
-SD_HandleTypeDef hsd;
-HAL_SD_CardInfoTypedef SDCardInfo;
+TIM_HandleTypeDef htim5;
 
 UART_HandleTypeDef huart8;
 DMA_HandleTypeDef hdma_uart8_tx;
@@ -68,7 +68,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC_Init(void);
 static void MX_RNG_Init(void);
-static void MX_SDIO_SD_Init(void);
+static void MX_TIM5_Init(void);
 static void MX_UART8_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -82,6 +82,13 @@ void init(void)
 	//while (HAL_DMAEx_MultiBufferStart(HUART.hdmarx, (uint32_t)&HUART.Instance->DR, (uint32_t)uartBuffer[0], (uint32_t)uartBuffer[1], PKG_SIZE) != HAL_OK);
 	HUART.Instance->CR3 |= USART_CR3_DMAT;
 	sendString(__DATE__ ", " __TIME__ " | Hello, world!\r\n");
+	initDAC();
+	initADC();
+}
+
+void reset(void)
+{
+	resetADC();
 }
 /* USER CODE END 0 */
 
@@ -105,22 +112,16 @@ int main(void)
 	MX_ADC1_Init();
 	MX_DAC_Init();
 	MX_RNG_Init();
-	MX_SDIO_SD_Init();
+	MX_TIM5_Init();
 	MX_UART8_Init();
 
 	/* USER CODE BEGIN 2 */
 	init();
-	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 1024);
-	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 3096);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
-	while (HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc, 2) != HAL_OK);
 	/* USER CODE END 2 */
 
 	/* USER CODE BEGIN 3 */
-	/* Infinite loop */
 	ctrlRootLoop();
-	while (1);
+	for (;;);
 	/* USER CODE END 3 */
 
 }
@@ -143,10 +144,12 @@ void SystemClock_Config(void)
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 	RCC_OscInitStruct.PLL.PLLM = 12;
-	RCC_OscInitStruct.PLL.PLLN = 336;
+	RCC_OscInitStruct.PLL.PLLN = 360;
 	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-	RCC_OscInitStruct.PLL.PLLQ = 7;
+	RCC_OscInitStruct.PLL.PLLQ = 8;
 	HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+	HAL_PWREx_ActivateOverDrive();
 
 	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1
 				      |RCC_CLOCKTYPE_PCLK2;
@@ -179,7 +182,8 @@ void MX_ADC1_Init(void)
 	hadc1.Init.ScanConvMode = ENABLE;
 	hadc1.Init.ContinuousConvMode = ENABLE;
 	hadc1.Init.DiscontinuousConvMode = DISABLE;
-	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+	hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC1;
 	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc1.Init.NbrOfConversion = 2;
 	hadc1.Init.DMAContinuousRequests = ENABLE;
@@ -195,7 +199,6 @@ void MX_ADC1_Init(void)
 
 	/**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
     */
-	sConfig.Channel = ADC_CHANNEL_6;
 	sConfig.Rank = 1;
 	HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
@@ -233,25 +236,33 @@ void MX_RNG_Init(void)
 
 }
 
-/* SDIO init function */
-void MX_SDIO_SD_Init(void)
+/* TIM5 init function */
+void MX_TIM5_Init(void)
 {
 
-	hsd.Instance = SDIO;
-	hsd.Init.ClockEdge = SDIO_CLOCK_EDGE_RISING;
-	hsd.Init.ClockBypass = SDIO_CLOCK_BYPASS_DISABLE;
-	hsd.Init.ClockPowerSave = SDIO_CLOCK_POWER_SAVE_DISABLE;
-	hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
-	hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
-	hsd.Init.ClockDiv = 0;
-	HAL_SD_Init(&hsd, &SDCardInfo);
+	TIM_SlaveConfigTypeDef sSlaveConfig;
+	TIM_MasterConfigTypeDef sMasterConfig;
+
+	htim5.Instance = TIM5;
+	htim5.Init.Prescaler = 0;
+	htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim5.Init.Period = 180000000;
+	htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	HAL_TIM_Base_Init(&htim5);
+
+	sSlaveConfig.SlaveMode = TIM_SLAVEMODE_DISABLE;
+	sSlaveConfig.InputTrigger = TIM_TS_ITR0;
+	HAL_TIM_SlaveConfigSynchronization(&htim5, &sSlaveConfig);
+
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC1REF;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig);
 
 }
 
 /* UART8 init function */
 void MX_UART8_Init(void)
 {
-
 	huart8.Instance = UART8;
 	huart8.Init.BaudRate = 2000000;
 	huart8.Init.WordLength = UART_WORDLENGTH_8B;
@@ -261,17 +272,16 @@ void MX_UART8_Init(void)
 	huart8.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart8.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart8);
-
 }
 
-/**
+/** 
   * Enable DMA controller clock
   */
-void MX_DMA_Init(void)
+void MX_DMA_Init(void) 
 {
 	/* DMA controller clock enable */
-	__DMA2_CLK_ENABLE();
 	__DMA1_CLK_ENABLE();
+	__DMA2_CLK_ENABLE();
 
 	/* DMA interrupt init */
 	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
@@ -279,7 +289,7 @@ void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as
+/** Configure pins as 
 	* Analog
 	* Input
 	* Output
@@ -294,10 +304,13 @@ void MX_DMA_Init(void)
      PB11   ------> ETH_TX_EN
      PB12   ------> ETH_TXD0
      PB13   ------> ETH_TXD1
+     PC8   ------> SDIO_D0
      PC9   ------> RCC_MCO_2
      PA9   ------> USB_OTG_FS_VBUS
      PA11   ------> USB_OTG_FS_DM
      PA12   ------> USB_OTG_FS_DP
+     PC12   ------> SDIO_CK
+     PD2   ------> SDIO_CMD
 */
 void MX_GPIO_Init(void)
 {
@@ -336,6 +349,14 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+	/*Configure GPIO pins : PC8 PC12 */
+	GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_12;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
 	/*Configure GPIO pin : PC9 */
 	GPIO_InitStruct.Pin = GPIO_PIN_9;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -357,6 +378,14 @@ void MX_GPIO_Init(void)
 	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
 	GPIO_InitStruct.Alternate = GPIO_AF10_OTG_FS;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : PD2 */
+	GPIO_InitStruct.Pin = GPIO_PIN_2;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+	GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
+	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
 }
 
@@ -390,6 +419,6 @@ void assert_failed(uint8_t* file, uint32_t line)
 
 /**
   * @}
-*/
+*/ 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -1,12 +1,12 @@
 /**
   ******************************************************************************
   * File Name          : stm32f4xx_hal_msp.c
-  * Date               : 19/12/2014 15:32:05
+  * Date               : 29/01/2015 01:19:14
   * Description        : This file provides code for the MSP Initialization 
   *                      and de-Initialization codes.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2014 STMicroelectronics
+  * COPYRIGHT(c) 2015 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -222,67 +222,36 @@ void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
 
 }
 
-void HAL_SD_MspInit(SD_HandleTypeDef* hsd)
+void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
 
-  GPIO_InitTypeDef GPIO_InitStruct;
-  if(hsd->Instance==SDIO)
+  if(htim_base->Instance==TIM5)
   {
-  /* USER CODE BEGIN SDIO_MspInit 0 */
+  /* USER CODE BEGIN TIM5_MspInit 0 */
 
-  /* USER CODE END SDIO_MspInit 0 */
+  /* USER CODE END TIM5_MspInit 0 */
     /* Peripheral clock enable */
-    __SDIO_CLK_ENABLE();
-  
-    /**SDIO GPIO Configuration    
-    PC8     ------> SDIO_D0
-    PC12     ------> SDIO_CK
-    PD2     ------> SDIO_CMD 
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_12;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    __TIM5_CLK_ENABLE();
+  /* USER CODE BEGIN TIM5_MspInit 1 */
 
-    GPIO_InitStruct.Pin = GPIO_PIN_2;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF12_SDIO;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN SDIO_MspInit 1 */
-
-  /* USER CODE END SDIO_MspInit 1 */
+  /* USER CODE END TIM5_MspInit 1 */
   }
 
 }
 
-void HAL_SD_MspDeInit(SD_HandleTypeDef* hsd)
+void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
 {
 
-  if(hsd->Instance==SDIO)
+  if(htim_base->Instance==TIM5)
   {
-  /* USER CODE BEGIN SDIO_MspDeInit 0 */
+  /* USER CODE BEGIN TIM5_MspDeInit 0 */
 
-  /* USER CODE END SDIO_MspDeInit 0 */
+  /* USER CODE END TIM5_MspDeInit 0 */
     /* Peripheral clock disable */
-    __SDIO_CLK_DISABLE();
-  
-    /**SDIO GPIO Configuration    
-    PC8     ------> SDIO_D0
-    PC12     ------> SDIO_CK
-    PD2     ------> SDIO_CMD 
-    */
-    HAL_GPIO_DeInit(GPIOC, GPIO_PIN_8|GPIO_PIN_12);
+    __TIM5_CLK_DISABLE();
+  /* USER CODE BEGIN TIM5_MspDeInit 1 */
 
-    HAL_GPIO_DeInit(GPIOD, GPIO_PIN_2);
-
-  /* USER CODE BEGIN SDIO_MspDeInit 1 */
-
-  /* USER CODE END SDIO_MspDeInit 1 */
+  /* USER CODE END TIM5_MspDeInit 1 */
   }
 
 }

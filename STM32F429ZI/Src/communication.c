@@ -152,7 +152,7 @@ void sendData(uint8_t *buffer, uint32_t length)
 	sendData(buffer, PKG_SIZE);
 }*/
 
-void sendString(char *string)
+void sendString(const char *string)
 {
 	sendData((uint8_t *)string, strlen(string) + 1);
 }

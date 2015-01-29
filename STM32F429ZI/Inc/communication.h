@@ -6,7 +6,7 @@
 void pollSending(void);
 void sendData(uint8_t *buffer, uint32_t length);
 //void send(uint8_t *buffer);
-void sendString(char *string);
+void sendString(const char *string);
 //void resync(void);
 //uint8_t *receive(void);
 int receiveChar(uint32_t timeout);

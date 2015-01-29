@@ -6,6 +6,7 @@
 #include "adc.h"
 #include "dac.h"
 #include "info.h"
+#include "timer.h"
 
 volatile uint8_t pause;
 
@@ -22,8 +23,10 @@ void ctrlByteType(uint8_t type, uint32_t min, uint32_t max, uint32_t value)
 void ctrlDeviceInfo(void)
 {
 	sendChar(CMD_INFO);
+	sendValue(FW_VERSION, 4);
 	sendString(DEVICE_NAME);
 	ctrlDACControllerGenerate();
+	ctrlADCControllerGenerate();
 }
 
 void ctrlRootLoop(void)
@@ -40,6 +43,20 @@ void ctrlRootLoop(void)
 		case CMD_PAUSE:
 			pause = 1;
 			sendChar(CMD_ACK);
+			break;
+		case CMD_ANALOGWAVE:
+			pause = 1;
+			sendChar(CMD_ACK);
+			switch (id = receiveChar(-1)) {
+			case CTRL_ADC_ID:
+				ctrlADCController();
+				break;
+			}
+			break;
+		case CMD_TIMER:
+			pause = 1;
+			sendChar(CMD_ACK);
+			ctrlTimerController();
 			break;
 		case CMD_CONTROLLER:
 			pause = 1;

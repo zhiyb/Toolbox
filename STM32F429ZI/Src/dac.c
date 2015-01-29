@@ -6,9 +6,17 @@
 #include "handles.h"
 #include "ctrl.h"
 
+void initDAC(void)
+{
+	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 1024);
+	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 3096);
+	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
+	HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+}
+
 void ctrlDACControllerGenerate(void)
 {
-	sendChar(CMD_CONTROLLER);	// Operation: Controller generate
+	sendChar(CMD_CONTROLLER);	// Controller generate
 	sendChar(CTRL_DAC1_ID);		// Controller ID
 	sendString("DAC Channel 1");	// Controller name
 	sendChar(DAC_CHANNEL_1);	// Settings ID
