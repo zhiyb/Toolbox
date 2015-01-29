@@ -23,20 +23,20 @@ ConnectionSelection::ConnectionSelection(QWidget *parent) :
 	QVBoxLayout *vLayout = new QVBoxLayout(this);
 	QHBoxLayout *hTypeLayout = new QHBoxLayout, *hSettingsLayout = new QHBoxLayout, *hButtonLayout = new QHBoxLayout;
 	vLayout->addLayout(hTypeLayout);
-	hTypeLayout->addWidget(rbTypes[Connection::Network] = new QRadioButton("&Network"));
+	hTypeLayout->addWidget(rbTypes[Connection::Network] = new QRadioButton(tr("&Network")));
 	rbTypes[Connection::Network]->setChecked(true);
-	hTypeLayout->addWidget(rbTypes[Connection::SerialPort] = new QRadioButton("&Serial Port"));
+	hTypeLayout->addWidget(rbTypes[Connection::SerialPort] = new QRadioButton(tr("&Serial Port")));
 	vLayout->addLayout(hSettingsLayout);
 	hSettingsLayout->addWidget(lHost = new QLabel);
 	hSettingsLayout->addWidget(leHost = new QLineEdit, 2);
-	hSettingsLayout->addWidget(pbScan = new QPushButton("S&can"));
+	hSettingsLayout->addWidget(pbScan = new QPushButton(tr("Sc&an")));
 	pbScan->setVisible(false);
 	hSettingsLayout->addWidget(lPort = new QLabel);
 	hSettingsLayout->addWidget(lePort = new QLineEdit, 1);
 	vLayout->addLayout(hButtonLayout);
-	hButtonLayout->addWidget(pbOpen = new QPushButton("Open"));
+	hButtonLayout->addWidget(pbOpen = new QPushButton(tr("&Open")));
 	pbOpen->setDefault(true);
-	hButtonLayout->addWidget(pbCancel = new QPushButton("Cancel"));
+	hButtonLayout->addWidget(pbCancel = new QPushButton(tr("&Cancel")));
 	setWindowTitle("Connection settings");
 	setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
 
@@ -56,10 +56,10 @@ void ConnectionSelection::scan(void)
 	for (int i = 0; i < ports.count(); i++)
 		names.append(ports.at(i).description() + " (" + ports.at(i).portName() + ")");
 	if (names.count() == 0) {
-		QMessageBox::information(this, "Serial port selection", "No serial port available!");
+		QMessageBox::information(this, tr("Serial port selection"), tr("No serial port available!"));
 		return;
 	}
-	QString sel = QInputDialog::getItem(this, "Serial port selection", "Please select a serial port hardware from the list:", names, 0, false);
+	QString sel = QInputDialog::getItem(this, tr("Serial port selection"), tr("Please select a serial port hardware from the list:"), names, 0, false);
 	if (!sel.isEmpty())
 		for (int i = 0; i < ports.count(); i++)
 			if (names.at(i) == sel) {
@@ -98,16 +98,16 @@ void ConnectionSelection::typeUpdate(void)
 	normalize();
 	if (rbTypes[Connection::Network]->isChecked()) {
 		type = Connection::Network;
-		lHost->setText("Host:");
+		lHost->setText(tr("Host:"));
 		leHost->setText(host);
-		lPort->setText("Port:");
+		lPort->setText(tr("Port:"));
 		lePort->setText(QString::number(port));
 		pbScan->setVisible(false);
 	} else if (rbTypes[Connection::SerialPort]->isChecked()) {
 		type = Connection::SerialPort;
-		lHost->setText("Serial port:");
+		lHost->setText(tr("Serial port:"));
 		leHost->setText(serialPort);
-		lPort->setText("Speed:");
+		lPort->setText(tr("Speed:"));
 		lePort->setText(QString::number(serialSpeed));
 		pbScan->setVisible(true);
 	}
@@ -172,7 +172,7 @@ void Connection::reset(void)
 	QByteArray data = con->readAll();
 	if (!data.endsWith(CMD_ACK)) {
 		//qDebug() << data;
-		emit error("Package sync error: " + data);
+		emit error(tr("Reset error, no acknowledge received: ") + data);
 		return;
 	}
 	//sendChar(CMD_ACK);
@@ -214,7 +214,7 @@ bool Connection::init(void)
 		serialPort()->setBaudRate(s->serialSpeed);
 		serialPort()->open(QIODevice::ReadWrite);
 		if (!serialPort()->isOpen()) {
-			QMessageBox::critical(0, "Serial port error", "Cannot open selected serial port!");
+			QMessageBox::critical(0, tr("Serial port error"), tr("Cannot open selected serial port!"));
 			return false;
 		}
 		break;
@@ -279,10 +279,10 @@ void Connection::writeMessage(message_t msg)
 	char c;
 	while ((c = readData()) == 0);
 	if (c != CMD_ACK) {
-		emit error(QString("No ACK received for command '%1': %2").arg(msg.command).arg((int)c, 0, 16));
+		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg((int)c, 0, 16));
 		return;
 	}
-	if (msg.id != (quint8)-1)
+	if (msg.id != INVALID_ID)
 		writeChar(msg.id);
 	while (msg.settings.count()) {
 		struct message_t::set_t set = msg.settings.dequeue();
@@ -294,6 +294,7 @@ void Connection::writeMessage(message_t msg)
 struct info_t Connection::readInfo(void)
 {
 	struct info_t info;
+	info.version = readValue(4);
 	info.name = readString();
 	return info;
 }
@@ -303,15 +304,15 @@ struct controller_t Connection::readController(void)
 	//qDebug() << "Connection::readController";
 	struct controller_t ctrl;
 	ctrl.id = readChar();
-	if (ctrl.id == (quint8)-1) {
-		emit error("Invalid controller ID");
+	if (ctrl.id == INVALID_ID) {
+		emit error(tr("Invalid controller ID"));
 		return ctrl;
 	}
 	ctrl.name = readString();
 	forever {
 		struct controller_t::set_t set;
 		set.id = readChar();
-		if (set.id == (quint8)-1)
+		if (set.id == INVALID_ID)
 			return ctrl;
 		set.type = readChar();
 		switch (set.type & ~CTRL_READONLY) {
@@ -333,15 +334,56 @@ struct controller_t Connection::readController(void)
 	}
 }
 
+timer_t Connection::readTimer(void)
+{
+	timer_t timer;
+	if (readChar() != CMD_TIMER) {
+		emit error(tr("Invalid timer command"));
+		return timer;
+	}
+	timer.id = readChar();
+	if (timer.id == INVALID_ID) {
+		emit error(tr("Invalid timer ID"));
+		return timer;
+	}
+	timer.resolution = readChar();
+	timer.frequency = readValue(4);
+	return timer;
+}
+
+analog_t Connection::readAnalog(void)
+{
+	analog_t analog;
+	analog.id = readChar();
+	if (analog.id == INVALID_ID) {
+		emit error(tr("Invalid analog ID"));
+		return analog;
+	}
+	analog.name = readString();
+	analog.resolution = readChar();
+	quint8 channels = readChar();
+	for (quint8 i = 0; i < channels; i++) {
+		analog_t::channel_t channel;
+		channel.id = readChar();
+		channel.name = readString();
+		analog.channels.push_back(channel);
+	}
+	analog.timer = readTimer();
+	return analog;
+}
+
 char Connection::readData(int msec)
 {
-	//qDebug() << "readData";
-	char c;
-	switch (c = readChar(msec)) {
+	char c = readChar(msec);
+	//qDebug() << "Connection::readData:" << c;
+	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
 	case CMD_INFO:
 		emit info(readInfo());
+		break;
+	case CMD_ANALOGWAVE:
+		emit analog(readAnalog());
 		break;
 	case CMD_CONTROLLER:
 		emit controller(readController());
@@ -360,11 +402,13 @@ void Connection::loop(void)
 			writeMessage(queue.dequeue());
 		readData(10);
 	}
+	//qDebug() << "loop exit.";
 	reset();
 }
 
 void Connection::enqueue(const message_t &msg)
 {
+	//qDebug() << "Connection::enqueue";
 	queueLock = true;
 	if (!queue.isEmpty() && queue.last().similar(msg))
 		queue.removeLast();

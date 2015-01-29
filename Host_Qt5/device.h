@@ -18,14 +18,16 @@ public:
 signals:
 	void deviceNameChanged(QString name);
 	void controllerInfo(controller_t s);
+	void analogWaveform(analog_t s);
 
 public slots:
 	void send(message_t s) {con->enqueue(s);}
 
 private slots:
 	void error(QString str);
-	void info(info_t s) {emit deviceNameChanged(s.name);}
-	void controller(controller_t s) {emit controllerInfo(s);}
+	void info(info_t s);
+	void controller(controller_t s);
+	void analog(analog_t s);
 
 private:
 	QThread conThread;

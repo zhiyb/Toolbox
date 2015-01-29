@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "controller.h"
+#include "analogwaveform.h"
 
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
@@ -8,9 +9,12 @@ MainWindow::MainWindow(QWidget *parent)
 	setCentralWidget(w);
 	layout = new QHBoxLayout(w);
 	dev = new Device(this);
-	setWindowTitle(dev->name());
+	gbWaveforms = 0;
+	//setWindowTitle(dev->name());
+	setAttribute(Qt::WA_QuitOnClose);
 	connect(dev, SIGNAL(deviceNameChanged(QString)), this, SLOT(setWindowTitle(QString)));
 	connect(dev, SIGNAL(controllerInfo(controller_t)), this, SLOT(controller(controller_t)));
+	connect(dev, SIGNAL(analogWaveform(analog_t)), this, SLOT(analogWaveform(analog_t)));
 #if 0
 	setWindowFlags(Qt::FramelessWindowHint);
 	setAttribute(Qt::WA_TranslucentBackground);
@@ -36,12 +40,19 @@ bool MainWindow::event(QEvent *e)
 		setWindowOpacity(1.00);
 		break;
 	case QEvent::WindowDeactivate:
-		setWindowOpacity(0.50);
+		setWindowOpacity(0.75);
 		break;
 	default:
 		break;
 	}
 	return QMainWindow::event(e);
+}
+
+void MainWindow::closeEvent(QCloseEvent *e)
+{
+	qApp->closeAllWindows();
+	//qApp->quit();
+	QMainWindow::closeEvent(e);
 }
 
 void MainWindow::controller(controller_t s)
@@ -53,4 +64,19 @@ void MainWindow::controller(controller_t s)
 		layout->addWidget(c);
 	} else
 		w->rebuild(s);
+}
+
+void MainWindow::analogWaveform(analog_t s)
+{
+	if (!gbWaveforms) {
+		gbWaveforms = new QGroupBox(tr("Waveforms"), this);
+		new QVBoxLayout(gbWaveforms);
+		layout->insertWidget(0, gbWaveforms);
+	}
+	QPushButton *pbWaveform = new QPushButton(s.name);
+	gbWaveforms->layout()->addWidget(pbWaveform);
+	AnalogWaveform *waveform = new AnalogWaveform;
+	waveform->setObjectName(QString::number(s.id));
+	waveform->setWindowTitle(s.name);
+	connect(pbWaveform, SIGNAL(clicked()), waveform, SLOT(show()));
 }

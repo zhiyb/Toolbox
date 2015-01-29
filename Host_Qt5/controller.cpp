@@ -20,7 +20,7 @@ void Controller::valueChanged(quint8 id)
 		if (set.id != id)
 			continue;
 		if (set.readOnly()) {
-			qWarning(QString("Value changed for read-only %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+			qWarning(tr("Value changed for read-only %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
 			break;
 		}
 		struct message_t msg;
@@ -47,14 +47,14 @@ void Controller::valueChanged(void)
 		case CTRL_BYTE4: {
 			QLabel *l = findChild<QLabel *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
 			if (!l) {
-				qWarning(QString("QLabel not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+				qWarning(tr("QLabel not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
 				continue;
 			}
 			quint32 current = l->text().mid(l->text().lastIndexOf(':') + 1).toLong();
 			if (!set.readOnly()) {
 				QSlider *s = findChild<QSlider *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
 				if (!s) {
-					qWarning(QString("QSlider not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+					qWarning(tr("QSlider not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
 					continue;
 				}
 				if (set.value != current)
@@ -65,7 +65,7 @@ void Controller::valueChanged(void)
 				}
 			}
 			if (set.value != current)
-				l->setText(set.name + ":\t" + QString::number(set.value));
+				l->setText(tr("%1:\t%2").arg(set.name).arg(set.value));
 		}
 		}
 	}
@@ -85,7 +85,7 @@ void Controller::rebuild(const controller_t &s)
 		case CTRL_BYTE2:
 		case CTRL_BYTE3:
 		case CTRL_BYTE4: {
-			QLabel *l = new QLabel(set.name + ":\t" + QString::number(set.value));
+			QLabel *l = new QLabel(tr("%1:\t%2").arg(set.name).arg(set.value));
 			l->setObjectName(QString::number(set.id));
 			layout->addWidget(l, 0, Qt::AlignHCenter);
 			if (!set.readOnly()) {

@@ -9,6 +9,7 @@
 #include "structures.h"
 
 #define DEFAULT_NETWORK_HOST	"192.168.0.36"
+//#define DEFAULT_NETWORK_HOST	"192.168.6.48"
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_SPEED	115200
@@ -56,11 +57,12 @@ signals:
 	void error(QString str);
 	void info(info_t s);
 	void controller(controller_t s);
+	void analog(analog_t s);
 
 public slots:
 	void loop(void);
 	void quit(void) {exit = true;}
-	void enqueue(const struct message_t &msg);
+	void enqueue(const message_t &msg);
 	void requestInfo(void);
 
 private slots:
@@ -68,8 +70,10 @@ private slots:
 	void reset(void);
 
 private:
-	struct info_t readInfo(void);
-	struct controller_t readController(void);
+	info_t readInfo(void);
+	controller_t readController(void);
+	timer_t readTimer(void);
+	analog_t readAnalog(void);
 	void write(QByteArray &data);
 	void writeChar(const char c);
 	void writeValue(const quint32 value, const quint32 bytes);

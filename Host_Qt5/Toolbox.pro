@@ -19,11 +19,13 @@ SOURCES += main.cpp\
     connection.cpp \
     device.cpp \
     controller.cpp \
-    structures.cpp
+    structures.cpp \
+    analogwaveform.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
     device.h \
     ../Inc/instructions.h \
     structures.h \
-    controller.h
+    controller.h \
+    analogwaveform.h

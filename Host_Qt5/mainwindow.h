@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QHBoxLayout>
+#include <QtWidgets>
 #include "device.h"
 
 class MainWindow : public QMainWindow
@@ -16,14 +16,18 @@ public:
 
 protected:
 	bool event(QEvent *e);
+	//void hideEvent(QHideEvent *e);
+	void closeEvent(QCloseEvent *e);
 
 private slots:
 	void controller(controller_t s);
+	void analogWaveform(analog_t s);
 
 private:
 	bool init;
 	Device *dev;
 	QHBoxLayout *layout;
+	QGroupBox *gbWaveforms;
 };
 
 #endif // MAINWINDOW_H
