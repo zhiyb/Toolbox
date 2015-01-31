@@ -33,7 +33,7 @@ void stopADC(void)
 void configureADC(void)
 {
 	const static uint32_t channels[CTRL_ADC_CHANNELS] = {
-		ADC_CHANNEL_0, ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_8, ADC_CHANNEL_9,
+		ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_8, ADC_CHANNEL_9, ADC_CHANNEL_10,
 		ADC_CHANNEL_TEMPSENSOR, ADC_CHANNEL_VBAT, ADC_CHANNEL_VREFINT,
 	};
 	stopADC();
@@ -91,7 +91,7 @@ loop:
 void ctrlADCControllerGenerate(void)
 {
 	const static char* channels[CTRL_ADC_CHANNELS] = {
-		"CHANNEL_0", "CHANNEL_3", "CHANNEL_6", "CHANNEL_8", "CHANNEL_9",
+		"CHANNEL_3", "CHANNEL_6", "CHANNEL_8", "CHANNEL_9", "CHANNEL_10",
 		"CHANNEL_TEMPSENSOR", "CHANNEL_VBAT", "CHANNEL_VREFINT",
 	};
 	sendChar(CMD_ANALOG);		// Analog waveform (ADC) customised controller

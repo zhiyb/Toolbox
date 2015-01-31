@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 31/01/2015 01:00:01
+  * Date               : 31/01/2015 18:56:17
   * Description        : Main program body
   ******************************************************************************
   *
@@ -52,6 +52,7 @@ DAC_HandleTypeDef hdac;
 
 RNG_HandleTypeDef hrng;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim5;
 
 UART_HandleTypeDef huart8;
@@ -69,6 +70,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC_Init(void);
 static void MX_RNG_Init(void);
+static void MX_TIM2_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_UART8_Init(void);
 
@@ -85,6 +87,7 @@ void init(void)
 	sendString(__DATE__ ", " __TIME__ " | Hello, world!\r\n");
 	initDAC();
 	initADC();
+	HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_3);
 }
 
 void reset(void)
@@ -113,6 +116,7 @@ int main(void)
 	MX_ADC1_Init();
 	MX_DAC_Init();
 	MX_RNG_Init();
+	MX_TIM2_Init();
 	MX_TIM5_Init();
 	MX_UART8_Init();
 
@@ -234,6 +238,38 @@ void MX_RNG_Init(void)
 
 	hrng.Instance = RNG;
 	HAL_RNG_Init(&hrng);
+
+}
+
+/* TIM2 init function */
+void MX_TIM2_Init(void)
+{
+
+	TIM_ClockConfigTypeDef sClockSourceConfig;
+	TIM_MasterConfigTypeDef sMasterConfig;
+	TIM_OC_InitTypeDef sConfigOC;
+
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = 0;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim2.Init.Period = 45000000;
+	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	HAL_TIM_Base_Init(&htim2);
+
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig);
+
+	HAL_TIM_PWM_Init(&htim2);
+
+	sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig);
+
+	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	sConfigOC.Pulse = 15000000;
+	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+	HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3);
 
 }
 
