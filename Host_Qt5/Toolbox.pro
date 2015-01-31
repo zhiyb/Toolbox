@@ -20,6 +20,7 @@ SOURCES += main.cpp\
     device.cpp \
     controller.cpp \
     structures.cpp \
+    analog.cpp \
     analogwaveform.cpp
 
 HEADERS  += mainwindow.h \
@@ -28,4 +29,9 @@ HEADERS  += mainwindow.h \
     ../Inc/instructions.h \
     structures.h \
     controller.h \
+    analog.h \
     analogwaveform.h
+
+DISTFILES += \
+    fragment.fsh \
+    gridvertex.vsh

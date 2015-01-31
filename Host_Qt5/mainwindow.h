@@ -20,8 +20,8 @@ protected:
 	void closeEvent(QCloseEvent *e);
 
 private slots:
-	void controller(controller_t s);
-	void analogWaveform(analog_t s);
+	void controller(controller_t *s);
+	void analog(analog_t *s);
 
 private:
 	bool init;

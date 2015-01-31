@@ -2,7 +2,7 @@
 #include <QDebug>
 #include "controller.h"
 
-Controller::Controller(const controller_t &s, QWidget *parent) : QGroupBox(parent)
+Controller::Controller(controller_t *s, QWidget *parent) : QGroupBox(parent)
 {
 	layout = new QVBoxLayout(this);
 	setLayout(layout);
@@ -15,8 +15,8 @@ Controller::~Controller()
 
 void Controller::valueChanged(quint8 id)
 {
-	for (int i = 0; i < ctrl.controls.count(); i++) {
-		struct controller_t::set_t &set = ctrl.controls[i];
+	for (int i = 0; i < ctrl->controls.count(); i++) {
+		controller_t::set_t &set = ctrl->controls[i];
 		if (set.id != id)
 			continue;
 		if (set.readOnly()) {
@@ -25,12 +25,13 @@ void Controller::valueChanged(quint8 id)
 		}
 		struct message_t msg;
 		msg.command = CMD_CONTROLLER;
-		msg.id = ctrl.id;
+		msg.id = ctrl->id;
 		struct message_t::set_t msgSet;
 		msgSet.id = set.id;
 		msgSet.bytes = set.bytes();
 		msgSet.value = set.value;
 		msg.settings.enqueue(msgSet);
+		msg.settings.enqueue(message_t::set_t());	// End of settings
 		emit message(msg);
 		break;
 	}
@@ -38,8 +39,8 @@ void Controller::valueChanged(quint8 id)
 
 void Controller::valueChanged(void)
 {
-	for (int i = 0; i < ctrl.controls.count(); i++) {
-		struct controller_t::set_t &set = ctrl.controls[i];
+	for (int i = 0; i < ctrl->controls.count(); i++) {
+		struct controller_t::set_t &set = ctrl->controls[i];
 		switch (set.type & ~CTRL_READONLY) {
 		case CTRL_BYTE1:
 		case CTRL_BYTE2:
@@ -71,15 +72,15 @@ void Controller::valueChanged(void)
 	}
 }
 
-void Controller::rebuild(const controller_t &s)
+void Controller::rebuild(controller_t *s)
 {
 	while (layout->count())
 		layout->removeItem(layout->itemAt(0));
 	ctrl = s;
-	setObjectName(QString::number(ctrl.id));
-	setTitle(ctrl.name);
-	for (int i = 0; i < ctrl.controls.count(); i++) {
-		struct controller_t::set_t set = ctrl.controls.at(i);
+	setObjectName(QString::number(ctrl->id));
+	setTitle(ctrl->name);
+	for (int i = 0; i < ctrl->controls.count(); i++) {
+		struct controller_t::set_t set = ctrl->controls.at(i);
 		switch (set.type & ~CTRL_READONLY) {
 		case CTRL_BYTE1:
 		case CTRL_BYTE2:

@@ -14,22 +14,27 @@ public:
 	~Device(void);
 	bool init(void);
 	QString name(void) const {return data.name;}
+	Connection *connection(void) {return con;}
 
 signals:
 	void deviceNameChanged(QString name);
-	void controllerInfo(controller_t s);
-	void analogWaveform(analog_t s);
+	void controller(controller_t *s);
+	void analog(analog_t *s);
+	void messageSent(quint32 sequence);
 
 public slots:
 	void send(message_t s) {con->enqueue(s);}
 
 private slots:
 	void error(QString str);
-	void info(info_t s);
-	void controller(controller_t s);
-	void analog(analog_t s);
+	void info(info_t *s);
+	void device(device_t s);
+	void message(quint32 sequence) {emit messageSent(sequence);}
 
 private:
+	void controllerInfo(controller_t *s);
+	void analogInfo(analog_t *s);
+
 	QThread conThread;
 	Connection *con;
 	struct data_t {

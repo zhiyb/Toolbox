@@ -8,12 +8,6 @@
 #include <QDialog>
 #include "structures.h"
 
-#define DEFAULT_NETWORK_HOST	"192.168.0.36"
-//#define DEFAULT_NETWORK_HOST	"192.168.6.48"
-#define DEFAULT_NETWORK_PORT	1111
-#define DEFAULT_SERIAL_PORT	"COM1"
-#define DEFAULT_SERIAL_SPEED	115200
-
 #define COMMUNICATION_WAIT	1000
 
 class ConnectionSelection : public QDialog
@@ -48,6 +42,7 @@ class Connection : public QObject
 	friend class ConnectionSelection;
 public:
 	explicit Connection(QObject *parent = 0);
+	~Connection(void);
 	QTcpSocket *tcpSocket(void) {return (QTcpSocket *)con;}
 	QSerialPort *serialPort(void) {return (QSerialPort *)con;}
 	bool init(void);
@@ -55,9 +50,12 @@ public:
 signals:
 	//void failed(void);
 	void error(QString str);
-	void info(info_t s);
-	void controller(controller_t s);
-	void analog(analog_t s);
+	void device(device_t s);
+	//void controller(controller_t s);
+	//void analog(analog_t s);
+	void analogData(analog_t::data_t s);
+	void info(info_t *s);
+	void messageSent(quint32 sequence);
 
 public slots:
 	void loop(void);
@@ -70,19 +68,22 @@ private slots:
 	void reset(void);
 
 private:
-	info_t readInfo(void);
-	controller_t readController(void);
+	void pushInfo(info_t *s);
+	info_t *findInfo(const quint8 type, const quint8 id);
+	device_t readDeviceInfo(void);
+	controller_t *readController(void);
 	timer_t readTimer(void);
-	analog_t readAnalog(void);
+	analog_t *readAnalog(void);
+	analog_t::data_t readAnalogData(void);
 	void write(QByteArray &data);
 	void writeChar(const char c);
 	void writeValue(const quint32 value, const quint32 bytes);
 	void writeRepeatedChar(const char c, const qint64 size);
-	void writeMessage(message_t msg);
+	void writeMessage(message_t &msg);
 	int readChar(int msec = COMMUNICATION_WAIT);
 	quint32 readValue(const quint32 bytes, int msec = COMMUNICATION_WAIT);
 	char readData(int msec = COMMUNICATION_WAIT);
-	QString readString(void);
+	QString readString(int msec = COMMUNICATION_WAIT);
 	void waitForWrite(int msec = COMMUNICATION_WAIT);
 	void waitForRead(const qint64 size, int msec = COMMUNICATION_WAIT);
 	void waitForReadAll(int msec = COMMUNICATION_WAIT) {while (con->waitForReadyRead(msec));}
@@ -90,9 +91,11 @@ private:
 	enum Types {Network = 0, SerialPort = 1};
 
 	QIODevice *con;
-	QQueue<struct message_t> queue;
+	QQueue<message_t> queue;
+	QMutex queueLock;
+	QVector<info_t *> infos;
 	int type;
-	volatile bool exit, queueLock;
+	volatile bool exit;//, queueLock;
 };
 
 #endif // CONNECTION_H

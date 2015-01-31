@@ -6,9 +6,10 @@ Device::Device(QObject *parent) :
 	QObject(parent)
 {
 	qRegisterMetaType<message_t>("message_t");
-	qRegisterMetaType<info_t>("info_t");
-	qRegisterMetaType<controller_t>("controller_t");
-	qRegisterMetaType<analog_t>("analog_t");
+	qRegisterMetaType<device_t>("device_t");
+	//qRegisterMetaType<controller_t>("controller_t");
+	//qRegisterMetaType<analog_t>("analog_t");
+	qRegisterMetaType<analog_t::data_t>("analog_t::data_t");
 	con = new Connection;
 }
 
@@ -23,9 +24,11 @@ bool Device::init(void)
 {
 	connect(&conThread, SIGNAL(started()), con, SLOT(loop()));
 	connect(con, SIGNAL(error(QString)), this, SLOT(error(QString)));
-	connect(con, SIGNAL(info(info_t)), this, SLOT(info(info_t)));
-	connect(con, SIGNAL(controller(controller_t)), this, SLOT(controller(controller_t)));
-	connect(con, SIGNAL(analog(analog_t)), this, SLOT(analog(analog_t)));
+	connect(con, SIGNAL(info(info_t *)), this, SLOT(info(info_t *)));
+	connect(con, SIGNAL(device(device_t)), this, SLOT(device(device_t)));
+	connect(con, SIGNAL(messageSent(quint32)), this, SLOT(message(quint32)));
+	//connect(con, SIGNAL(controller(controller_t)), this, SLOT(controllerInfo(controller_t)));
+	//connect(con, SIGNAL(analog(analog_t)), this, SLOT(analogInfo(analog_t)));
 	if (!con->init()) {
 		error(tr("Connection initialise failed"));
 		return false;
@@ -43,9 +46,9 @@ void Device::error(QString str)
 	//qApp->quit();
 }
 
-void Device::info(info_t s)
+void Device::device(device_t s)
 {
-	qDebug(tr("Device version: %1, name: %2").arg(s.version).arg(s.name).toLocal8Bit());
+	qDebug(tr("Device name: %1, firmwave version: %2").arg(s.name).arg(s.version).toLocal8Bit());
 	if (s.version != FW_VERSION) {
 		error(tr("Device firmware version mismatch"));
 		qApp->quit();
@@ -53,23 +56,37 @@ void Device::info(info_t s)
 	emit deviceNameChanged(s.name);
 }
 
-void Device::controller(controller_t s)
+void Device::info(info_t *s)
 {
-	qDebug(tr("Controller id: %1, name: %2, controls: %3").arg(s.id).arg(s.name).arg(s.controls.count()).toLocal8Bit());
-	for (int i = 0; i < s.controls.count(); i++) {
-		struct controller_t::set_t set = s.controls.at(i);
-		qDebug(tr("  Control id: %1, name: %2, type: %3, value: %6").arg(set.id).arg(set.name).arg(set.type).arg(set.value).toLocal8Bit());
+	if (!s)
+		return;
+	switch (s->type()) {
+	case CMD_CONTROLLER:
+		controllerInfo((controller_t *)s);
+		break;
+	case CMD_ANALOG:
+		analogInfo((analog_t *)s);
+		break;
 	}
-	emit controllerInfo(s);
 }
 
-void Device::analog(analog_t s)
+void Device::controllerInfo(controller_t *s)
 {
-	qDebug(tr("Analog id: %1, name: %2, resolution: %3, channels: %4").arg(s.id).arg(s.name).arg(s.resolution).arg(s.channels.count()).toLocal8Bit());
-	for (int i = 0; i < s.channels.count(); i++) {
-		struct analog_t::channel_t channel = s.channels.at(i);
-		qDebug(tr("  Channel id: %1, name: %2").arg(channel.id).arg(channel.name).toLocal8Bit());
+	qDebug(tr("Controller ID: %1, name: %2, controls: %3").arg(s->id).arg(s->name).arg(s->controls.count()).toLocal8Bit());
+	for (int i = 0; i < s->controls.count(); i++) {
+		const controller_t::set_t &set = s->controls.at(i);
+		qDebug(tr("  Control ID: %1, name: %2, type: %3, value: %6").arg(set.id).arg(set.name).arg(set.type).arg(set.value).toLocal8Bit());
 	}
-	qDebug(tr("  Timer id: %1, resolution: %2, frequency: %3").arg(s.timer.id).arg(s.timer.resolution).arg(s.timer.frequency).toLocal8Bit());
-	emit analogWaveform(s);
+	emit controller(s);
+}
+
+void Device::analogInfo(analog_t *s)
+{
+	qDebug(tr("Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, channels: %5").arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->channels.count()).toLocal8Bit());
+	for (int i = 0; i < s->channels.count(); i++) {
+		const analog_t::channel_t &channel = s->channels.at(i);
+		qDebug(tr("  Channel ID: %1, name: %2").arg(channel.id).arg(channel.name).toLocal8Bit());
+	}
+	qDebug(tr("  Timer ID: %1, resolution: %2, clock frequency: %3").arg(s->timer.id).arg(s->timer.resolution).arg(s->timer.clockFrequency).toLocal8Bit());
+	emit analog(s);
 }

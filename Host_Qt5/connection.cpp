@@ -11,6 +11,12 @@
 #include "connection.h"
 //#include "structures.h"
 
+#define DEFAULT_NETWORK_HOST	"192.168.0.36"
+//#define DEFAULT_NETWORK_HOST	"192.168.6.48"
+#define DEFAULT_NETWORK_PORT	1111
+#define DEFAULT_SERIAL_PORT	"COM1"
+#define DEFAULT_SERIAL_SPEED	115200
+
 ConnectionSelection::ConnectionSelection(QWidget *parent) :
 	QDialog(parent)
 {
@@ -125,8 +131,16 @@ void ConnectionSelection::accept(void)
 Connection::Connection(QObject *parent) :
 	QObject(parent)
 {
-	queueLock = false;
+	//queueLock = false;
 	exit = false;
+}
+
+Connection::~Connection(void)
+{
+	while (!infos.isEmpty()) {
+		delete infos.first();
+		infos.removeFirst();
+	}
 }
 
 void Connection::waitForWrite(int msec)
@@ -258,62 +272,92 @@ quint32 Connection::readValue(const quint32 bytes, int msec)
 	return value;
 }
 
-QString Connection::readString(void)
+QString Connection::readString(int msec)
 {
 	char c;
 	QString str;
 	forever {
-		c = readChar(-1);
-		if (c == '\0')
+		c = readChar(msec);
+		if (c == '\0' || c == -1)
 			break;
 		str.append(c);
 	}
 	return str;
 }
 
-void Connection::writeMessage(message_t msg)
+void Connection::writeMessage(message_t &msg)
 {
 	//qDebug() << "writeMessage";
+	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
 	writeChar(msg.command);
-	waitForWrite();
-	char c;
+	//waitForWrite();
+	quint8 c;
 	while ((c = readData()) == 0);
 	if (c != CMD_ACK) {
-		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg((int)c, 0, 16));
+		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg(c));
 		return;
 	}
 	if (msg.id != INVALID_ID)
 		writeChar(msg.id);
 	while (msg.settings.count()) {
 		struct message_t::set_t set = msg.settings.dequeue();
+		//qDebug(tr("  Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value).toLocal8Bit());
 		writeChar(set.id);
+		if (set.id == INVALID_ID)
+			break;
 		writeValue(set.value, set.bytes);
 	}
+	emit messageSent(msg.sequence);
 }
 
-struct info_t Connection::readInfo(void)
+void Connection::pushInfo(info_t *s)
 {
-	struct info_t info;
-	info.version = readValue(4);
-	info.name = readString();
-	return info;
+	for (int i = 0; i < infos.count(); i++) {
+		info_t *info = infos[i];
+		if (info->type() == s->type() && info->id == s->id) {
+			infos.replace(i, s);
+			delete info;
+			return;
+		}
+	}
+	infos.append(s);
 }
 
-struct controller_t Connection::readController(void)
+info_t *Connection::findInfo(const quint8 type, const quint8 id)
+{
+	for (int i = 0; i < infos.count(); i++) {
+		info_t *info = infos[i];
+		//qDebug(tr("Matching: %1(%2), %3(%4)").arg(type).arg((quint32)id).arg(info->type()).arg((quint32)info->id).toLocal8Bit());
+		if (info->type() == type && info->id == id)
+			return info;
+	}
+	return 0;
+}
+
+device_t Connection::readDeviceInfo(void)
+{
+	device_t device;
+	device.version = readValue(4);
+	device.name = readString();
+	return device;
+}
+
+controller_t* Connection::readController(void)
 {
 	//qDebug() << "Connection::readController";
-	struct controller_t ctrl;
-	ctrl.id = readChar();
-	if (ctrl.id == INVALID_ID) {
+	controller_t *ctrl = new controller_t;
+	ctrl->id = readChar();
+	if (ctrl->id == INVALID_ID) {
 		emit error(tr("Invalid controller ID"));
-		return ctrl;
+		delete ctrl;
+		return 0;
 	}
-	ctrl.name = readString();
+	ctrl->name = readString();
 	forever {
 		struct controller_t::set_t set;
 		set.id = readChar();
 		if (set.id == INVALID_ID)
-			return ctrl;
+			break;
 		set.type = readChar();
 		switch (set.type & ~CTRL_READONLY) {
 		case CTRL_BYTE1:
@@ -330,8 +374,10 @@ struct controller_t Connection::readController(void)
 		/*case CMD_END:
 			return ctrl;*/
 		}
-		ctrl.controls.append(set);
+		ctrl->controls.append(set);
 	}
+	pushInfo(ctrl);
+	return ctrl;
 }
 
 timer_t Connection::readTimer(void)
@@ -347,48 +393,83 @@ timer_t Connection::readTimer(void)
 		return timer;
 	}
 	timer.resolution = readChar();
-	timer.frequency = readValue(4);
+	timer.clockFrequency = readValue(4);
 	return timer;
 }
 
-analog_t Connection::readAnalog(void)
+analog_t *Connection::readAnalog(void)
 {
-	analog_t analog;
-	analog.id = readChar();
-	if (analog.id == INVALID_ID) {
+	analog_t *analog = new analog_t;
+	analog->id = readChar();
+	if (analog->id == INVALID_ID) {
 		emit error(tr("Invalid analog ID"));
-		return analog;
+		delete analog;
+		return 0;
 	}
-	analog.name = readString();
-	analog.resolution = readChar();
+	analog->name = readString();
+	analog->resolution = readChar();
+	analog->scanFrequency = readValue(4);
 	quint8 channels = readChar();
 	for (quint8 i = 0; i < channels; i++) {
 		analog_t::channel_t channel;
 		channel.id = readChar();
 		channel.name = readString();
-		analog.channels.push_back(channel);
+		analog->channels.push_back(channel);
 	}
-	analog.timer = readTimer();
+	analog->timer = readTimer();
+	pushInfo(analog);
 	return analog;
+}
+
+analog_t::data_t Connection::readAnalogData(void)
+{
+	analog_t::data_t data;
+	data.id = readChar();
+	if (data.id == INVALID_ID) {
+		emit error(tr("Invalid analog data ID"));
+		return data;
+	}
+	analog_t *analog = (analog_t *)findInfo(CMD_ANALOG, data.id);
+	if (!analog) {
+		emit error(tr("No matching analog data ID: %1").arg(data.id));
+		data.id = INVALID_ID;
+		return data;
+	}
+	data.type = readChar();
+	switch (data.type) {
+	case CTRL_DATA:
+		for (int i = 0; i < analog->channels.count(); i++)
+			data.data.append(readValue(analog->bytes()));
+		break;
+	}
+	return data;
 }
 
 char Connection::readData(int msec)
 {
-	char c = readChar(msec);
+	quint8 c = readChar(msec);
 	//qDebug() << "Connection::readData:" << c;
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
 	case CMD_INFO:
-		emit info(readInfo());
+		emit device(readDeviceInfo());
 		break;
-	case CMD_ANALOGWAVE:
-		emit analog(readAnalog());
+	case CMD_ANALOG:
+		emit info(readAnalog());
 		break;
 	case CMD_CONTROLLER:
-		emit controller(readController());
+		emit info(readController());
+		break;
+	case CMD_ANALOGDATA:
+		emit analogData(readAnalogData());
+		break;
+	case 'V':
+		qDebug(tr("%1: Received debug V").arg(QTime::currentTime().toString()).toLocal8Bit());
+	case ((quint8)-1):
 		break;
 	default:
+		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
 	return 0;
@@ -396,10 +477,20 @@ char Connection::readData(int msec)
 
 void Connection::loop(void)
 {
+	bool send = false;
+	message_t msg;
 	while (!exit) {
 		//qDebug() << "loop.";
-		if (!queueLock && queue.count() != 0)
-			writeMessage(queue.dequeue());
+		if (queueLock.tryLock()) {
+			if (!queue.isEmpty()) {
+				msg = queue.dequeue();
+				send = true;
+			}
+			queueLock.unlock();
+			if (send)
+				writeMessage(msg);
+			send = false;
+		}
 		readData(10);
 	}
 	//qDebug() << "loop exit.";
@@ -409,9 +500,11 @@ void Connection::loop(void)
 void Connection::enqueue(const message_t &msg)
 {
 	//qDebug() << "Connection::enqueue";
-	queueLock = true;
+	//queueLock = true;
+	queueLock.lock();
 	if (!queue.isEmpty() && queue.last().similar(msg))
 		queue.removeLast();
 	queue.enqueue(msg);
-	queueLock = false;
+	//queueLock = false;
+	queueLock.unlock();
 }
