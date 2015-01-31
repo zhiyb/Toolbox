@@ -34,4 +34,5 @@ HEADERS  += mainwindow.h \
 
 DISTFILES += \
     fragment.fsh \
-    gridvertex.vsh
+    gridvertex.vsh \
+    ytvertex.vsh

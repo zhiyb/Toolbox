@@ -97,11 +97,12 @@ struct analog_t : public info_t, public resolution_t {
 	QString name;
 	quint32 scanFrequency;
 	struct channel_t {
-		channel_t(void) : id(INVALID_ID), enabled(true) {}
+		channel_t(void) : id(INVALID_ID), enabled(true), colour(1.f, 0.f, 0.f, 1.f) {}
 
 		quint8 id;
-		bool enabled;
 		QString name;
+		bool enabled;
+		QVector4D colour;
 		QVector<quint32> buffer;
 		scale_t scale;
 	};

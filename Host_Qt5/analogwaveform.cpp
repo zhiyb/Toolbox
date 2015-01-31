@@ -80,17 +80,61 @@ void AnalogWaveform::initializeGL(void)
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	glEnable(GL_POINT_SPRITE);
 
-	if (!(grid.vsh = loadShaderFile(GL_VERTEX_SHADER, "gridvertex.vsh")))
-		qFatal(tr("Cannot load grid vertex shader").toLocal8Bit());
-	if (!(fsh = loadShaderFile(GL_FRAGMENT_SHADER, "fragment.fsh")))
-		qFatal(tr("Cannot load fragment shader").toLocal8Bit());
-	program = glCreateProgram();
-	//glUseProgram(program);
+	try {
+		grid.vsh = loadShaderFile(GL_VERTEX_SHADER, "gridvertex.vsh");
+		wave.vshYT = loadShaderFile(GL_VERTEX_SHADER, "ytvertex.vsh");
+		fsh = loadShaderFile(GL_FRAGMENT_SHADER, "fragment.fsh");
+	}
+	catch (QString str) {
+		qFatal(tr("Cannot load shader:\n%1").arg(str).toLocal8Bit());
+	}
+
+	try {
+		grid.program = createProgram(grid.vsh, fsh);
+		wave.programYT = createProgram(wave.vshYT, fsh);//glCreateProgram();
+		//glAttachShader(wave.programYT, wave.vshYT);
+		//glAttachShader(wave.programYT, fsh);
+		/*glBindAttribLocation(wave.programYT, 0, "data");
+		glBindAttribLocation(wave.programYT, 1, "index");
+		glBindAttribLocation(wave.programYT, 2, "frequency");
+		glBindAttribLocation(wave.programYT, 3, "hCount");
+		glBindAttribLocation(wave.programYT, 4, "maxValue");
+		glBindAttribLocation(wave.programYT, 5, "modelView");
+		glBindAttribLocation(wave.programYT, 6, "projection");
+		glBindAttribLocation(wave.programYT, 7, "timebase");
+		glBindAttribLocation(wave.programYT, 8, "colour");*/
+		//glLinkProgram(wave.programYT);
+	}
+	catch (QString str) {
+		qFatal(tr("Cannot create program:\n%1").arg(str).toLocal8Bit());
+	}
+
+#if 1
+	glUseProgram(grid.program);
+	grid.location.colour = glGetUniformLocation(grid.program, "colour");
+	grid.location.modelView = glGetUniformLocation(grid.program, "modelView");
+	grid.location.pointSize = glGetUniformLocation(grid.program, "pointSize");
+	grid.location.projection = glGetUniformLocation(grid.program, "projection");
+	grid.location.vertex = glGetAttribLocation(grid.program, "vertex");
+#endif
+
+	glUseProgram(wave.programYT);
+	wave.locationYT.colour = glGetUniformLocation(wave.programYT, "colour");
+	wave.locationYT.data = glGetAttribLocation(wave.programYT, "data");
+	wave.locationYT.frequency = glGetUniformLocation(wave.programYT, "frequency");
+	wave.locationYT.hCount = glGetUniformLocation(wave.programYT, "hCount");
+	wave.locationYT.index = glGetAttribLocation(wave.programYT, "index");
+	wave.locationYT.maxValue = glGetUniformLocation(wave.programYT, "maxValue");
+	wave.locationYT.modelView = glGetUniformLocation(wave.programYT, "modelView");
+	wave.locationYT.projection = glGetUniformLocation(wave.programYT, "projection");
+	wave.locationYT.timebase = glGetUniformLocation(wave.programYT, "timebase");
+	//qDebug() << wave.programYT << wave.vshYT << fsh << wave.locationYT.colour << wave.locationYT.data << wave.locationYT.frequency << wave.locationYT.hCount << wave.locationYT.index << wave.locationYT.maxValue << wave.locationYT.modelView << wave.locationYT.projection << wave.locationYT.timebase;
 }
 
 void AnalogWaveform::resizeGL(int w, int h)
 {
 	init();
+	analog->update();
 	glViewport(0, 0, w, h);
 	QSize count = analog->grid.count;
 	float x = (float)w / ((float)h / count.height() * count.width());
@@ -107,24 +151,53 @@ void AnalogWaveform::paintGL(void)
 	//mv.scale(0.5, 0.5, 0.5);
 	glClear(GL_COLOR_BUFFER_BIT);
 
+#if 1
 	// Draw grid
-	glAttachShader(program, grid.vsh);
-	glAttachShader(program, fsh);
-	glLinkProgram(program);
-	glUseProgram(program);
-	glEnableVertexAttribArray(glGetAttribLocation(program, "vertex"));
-	glVertexAttribPointer(glGetAttribLocation(program, "vertex"), 2, GL_FLOAT, GL_TRUE, 0, grid.vertices.constData());
-	glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, projection.constData());
-	glUniformMatrix4fv(glGetUniformLocation(program, "modelView"), 1, GL_FALSE, mv.constData());
-	glUniform4fv(glGetUniformLocation(program, "colour"), 1, (GLfloat *)&pref.gridColour);
-	glUniform1i(glGetUniformLocation(program, "pointSize"), pref.gridPointSize * 3);
-	//glPointSize(pref.gridPointSize * 3);
+	glUseProgram(grid.program);
+	glEnableVertexAttribArray(grid.location.vertex);
+	glVertexAttribPointer(grid.location.vertex, 2, GL_FLOAT, GL_TRUE, 0, grid.vertices.constData());
+	glUniformMatrix4fv(grid.location.projection, 1, GL_FALSE, projection.constData());
+	glUniformMatrix4fv(grid.location.modelView, 1, GL_FALSE, mv.constData());
+	glUniform4fv(grid.location.colour, 1, (GLfloat *)&pref.gridColour);
+	glUniform1i(grid.location.pointSize, pref.gridPointSize * 3);
 	glDrawArrays(GL_POINTS, 0, grid.largePoints);
-	glUniform1i(glGetUniformLocation(program, "pointSize"), pref.gridPointSize);
-	//glPointSize(pref.gridPointSize);
+	glUniform1i(grid.location.pointSize, pref.gridPointSize);
 	glDrawArrays(GL_POINTS, grid.largePoints, grid.vertices.count() - grid.largePoints);
-	glDetachShader(program, grid.vsh);
-	glDetachShader(program, fsh);
+	glDisableVertexAttribArray(grid.location.vertex);
+#endif
+
+	// Draw waveforms
+	updateIndices();
+	glUseProgram(wave.programYT);
+	glEnableVertexAttribArray(wave.locationYT.data);
+	glEnableVertexAttribArray(wave.locationYT.index);
+	glVertexAttribPointer(wave.locationYT.index, 1, GL_INT, GL_TRUE, 0, indices.constData());
+	glUniformMatrix4fv(wave.locationYT.projection, 1, GL_FALSE, projection.constData());
+	glUniformMatrix4fv(wave.locationYT.modelView, 1, GL_FALSE, mv.constData());
+	glUniform1i(wave.locationYT.maxValue, analog->maximum());
+	glUniform1i(wave.locationYT.hCount, analog->grid.count.width());
+	glUniform1f(wave.locationYT.timebase, analog->timebase.scale.value());
+	glUniform1f(wave.locationYT.frequency, analog->timer.frequency());
+	for (int i = 0; i < analog->channels.count(); i++)
+		if (analog->channels.at(i).enabled) {
+			glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, analog->channels.at(i).buffer.constData());
+			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&analog->channels.at(i).colour);
+#if 1
+			glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.position);
+			glDrawArrays(GL_LINE_STRIP, analog->buffer.position, analog->buffer.validSize - analog->buffer.position);
+			//glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.sizePerChannel);
+#else
+			glDrawArrays(GL_POINTS, 0, analog->buffer.validSize);
+#endif
+		}
+	glDisableVertexAttribArray(wave.locationYT.data);
+	glDisableVertexAttribArray(wave.locationYT.index);
+}
+
+void AnalogWaveform::updateIndices()
+{
+	while (indices.count() < (int)analog->buffer.sizePerChannel)
+		indices.append(indices.count());
 }
 
 GLuint AnalogWaveform::loadShader(GLenum type, const QByteArray& context)
@@ -144,8 +217,8 @@ GLuint AnalogWaveform::loadShader(GLenum type, const QByteArray& context)
 	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
 	char log[logLength];
 	glGetShaderInfoLog(shader, logLength, &logLength, log);
-	qWarning(log);
 	glDeleteShader(shader);
+	throw QString(log);
 	return 0;
 }
 
@@ -159,4 +232,25 @@ GLuint AnalogWaveform::loadShaderFile(GLenum type, const char *path)
 	QByteArray context = f.readAll();
 	f.close();
 	return loadShader(type, context);
+}
+
+GLuint AnalogWaveform::createProgram(GLuint vsh, GLuint fsh)
+{
+	GLuint program = glCreateProgram();
+	glAttachShader(program, vsh);
+	glAttachShader(program, fsh);
+	glLinkProgram(program);
+
+	int status;
+	glGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == GL_TRUE)
+		return program;
+
+	int logLength;
+	glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	char log[logLength];
+	glGetProgramInfoLog(program, logLength, &logLength, log);
+	glDeleteProgram(program);
+	throw QString(log);
+	return 0;
 }

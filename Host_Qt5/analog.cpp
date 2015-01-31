@@ -142,13 +142,9 @@ void Analog::analogData(analog_t::data_t data)
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
-		for (int i = 0; i < analog->channels.count(); i++) {
-			/*QLabel *lValue = findChild<QLabel *>(QString::number(analog->channels.at(i).id));
-			if (lValue)
-				lValue->setText(tr("Value: %1").arg(data.data.at(i)));*/
+		for (int i = 0; i < analog->channels.count(); i++)
 			if (analog->channels.at(i).enabled)
 				analog->channels[i].buffer[analog->buffer.position] = data.data.at(count++);
-		}
 		analog->buffer.position++;
 		if (analog->buffer.validSize < analog->buffer.position)
 			analog->buffer.validSize = analog->buffer.position;
@@ -158,6 +154,7 @@ void Analog::analogData(analog_t::data_t data)
 	case CTRL_FRAME:
 		break;
 	}
+	waveform->update();
 }
 
 QGroupBox *Analog::buildChannelCtrl(const analog_t::channel_t &channel)
