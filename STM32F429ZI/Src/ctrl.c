@@ -7,6 +7,7 @@
 #include "dac.h"
 #include "info.h"
 #include "timer.h"
+#include "handles.h"
 
 volatile uint8_t pause;
 
@@ -34,22 +35,29 @@ void ctrlRootLoop(void)
 	//char buff[64];
 	char id;
 	for (;;) {
+		while (adcTxBufferRequest) {
+			pause = 1;
+			sendData(adcTxBuffer, adcTxBufferLength);
+			adcTxBufferRequest--;
+		}
+		pollSending();
 		pause = 0;
 		switch (receiveChar(-1)) {
 		case CMD_RESET:
 			pause = 1;
 			sendChar(CMD_ACK);
+			reset();
 			break;
-		case CMD_PAUSE:
+		/*case CMD_PAUSE:
 			pause = 1;
 			sendChar(CMD_ACK);
-			break;
-		case CMD_ANALOGWAVE:
+			break;*/
+		case CMD_ANALOG:
 			pause = 1;
 			sendChar(CMD_ACK);
 			switch (id = receiveChar(-1)) {
 			case CTRL_ADC_ID:
-				ctrlADCController();
+				ctrlADCController(id);
 				break;
 			}
 			break;
@@ -73,14 +81,14 @@ void ctrlRootLoop(void)
 			sendChar(CMD_ACK);
 			ctrlDeviceInfo();
 			break;
-		default:
-			/*sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
+		/*default:
+			sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
 			sendString(buff);
 			pollSending();
 			sprintf(buff, "ADC[0]: %u\t ADC[1]: %u\r\n", adc[0], adc[1]);
 			sendString(buff);
-			pollSending();*/
-			break;
+			pollSending();
+			break;*/
 		}
 	}
 }

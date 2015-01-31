@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file    stm32f4xx_it.c
-  * @date    29/01/2015 01:19:14
+  * @date    31/01/2015 00:59:59
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
@@ -40,6 +40,7 @@
 /* USER CODE END 0 */
 /* External variables --------------------------------------------------------*/
 
+extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_uart8_tx;
 
 /******************************************************************************/
@@ -73,6 +74,20 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
+}
+
+/**
+* @brief This function handles DMA2 Stream0 global interrupt.
+*/
+void DMA2_Stream0_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+
+  /* USER CODE END DMA2_Stream0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc1);
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream0_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

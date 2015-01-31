@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 29/01/2015 01:19:15
+  * Date               : 31/01/2015 01:00:01
   * Description        : Main program body
   ******************************************************************************
   *
@@ -41,6 +41,7 @@
 #include "adc.h"
 #include "dac.h"
 #include "handles.h"
+#include "info.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -180,7 +181,7 @@ void MX_ADC1_Init(void)
 	hadc1.Init.ClockPrescaler = ADC_CLOCKPRESCALER_PCLK_DIV2;
 	hadc1.Init.Resolution = ADC_RESOLUTION12b;
 	hadc1.Init.ScanConvMode = ENABLE;
-	hadc1.Init.ContinuousConvMode = ENABLE;
+	hadc1.Init.ContinuousConvMode = DISABLE;
 	hadc1.Init.DiscontinuousConvMode = DISABLE;
 	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
 	hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T5_CC1;
@@ -240,8 +241,9 @@ void MX_RNG_Init(void)
 void MX_TIM5_Init(void)
 {
 
-	TIM_SlaveConfigTypeDef sSlaveConfig;
+	TIM_ClockConfigTypeDef sClockSourceConfig;
 	TIM_MasterConfigTypeDef sMasterConfig;
+	TIM_OC_InitTypeDef sConfigOC;
 
 	htim5.Instance = TIM5;
 	htim5.Init.Prescaler = 0;
@@ -250,21 +252,29 @@ void MX_TIM5_Init(void)
 	htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	HAL_TIM_Base_Init(&htim5);
 
-	sSlaveConfig.SlaveMode = TIM_SLAVEMODE_DISABLE;
-	sSlaveConfig.InputTrigger = TIM_TS_ITR0;
-	HAL_TIM_SlaveConfigSynchronization(&htim5, &sSlaveConfig);
+	sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+	HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig);
+
+	HAL_TIM_PWM_Init(&htim5);
 
 	sMasterConfig.MasterOutputTrigger = TIM_TRGO_OC1REF;
 	sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
 	HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig);
+
+	sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	sConfigOC.Pulse = 100;
+	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
+	HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1);
 
 }
 
 /* UART8 init function */
 void MX_UART8_Init(void)
 {
+
 	huart8.Instance = UART8;
-	huart8.Init.BaudRate = 2000000;
+	huart8.Init.BaudRate = 1500000;
 	huart8.Init.WordLength = UART_WORDLENGTH_8B;
 	huart8.Init.StopBits = UART_STOPBITS_1;
 	huart8.Init.Parity = UART_PARITY_NONE;
@@ -272,6 +282,7 @@ void MX_UART8_Init(void)
 	huart8.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	huart8.Init.OverSampling = UART_OVERSAMPLING_16;
 	HAL_UART_Init(&huart8);
+
 }
 
 /** 
@@ -286,6 +297,8 @@ void MX_DMA_Init(void)
 	/* DMA interrupt init */
 	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+	HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 1, 0);
+	HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }
 

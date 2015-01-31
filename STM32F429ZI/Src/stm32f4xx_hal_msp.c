@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : stm32f4xx_hal_msp.c
-  * Date               : 29/01/2015 01:19:14
+  * Date               : 31/01/2015 01:00:00
   * Description        : This file provides code for the MSP Initialization 
   *                      and de-Initialization codes.
   ******************************************************************************
@@ -56,7 +56,7 @@ void HAL_MspInit(void)
 
   /* System interrupt init*/
 /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(SysTick_IRQn, 6, 0);
 
   /* USER CODE BEGIN MspInit 1 */
 
@@ -225,6 +225,7 @@ void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
 
+  GPIO_InitTypeDef GPIO_InitStruct;
   if(htim_base->Instance==TIM5)
   {
   /* USER CODE BEGIN TIM5_MspInit 0 */
@@ -232,6 +233,17 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE END TIM5_MspInit 0 */
     /* Peripheral clock enable */
     __TIM5_CLK_ENABLE();
+  
+    /**TIM5 GPIO Configuration    
+    PA0/WKUP     ------> TIM5_CH1 
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF2_TIM5;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /* USER CODE BEGIN TIM5_MspInit 1 */
 
   /* USER CODE END TIM5_MspInit 1 */
@@ -249,6 +261,12 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE END TIM5_MspDeInit 0 */
     /* Peripheral clock disable */
     __TIM5_CLK_DISABLE();
+  
+    /**TIM5 GPIO Configuration    
+    PA0/WKUP     ------> TIM5_CH1 
+    */
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_0);
+
   /* USER CODE BEGIN TIM5_MspDeInit 1 */
 
   /* USER CODE END TIM5_MspDeInit 1 */

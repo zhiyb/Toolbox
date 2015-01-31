@@ -2,11 +2,6 @@
 #include "handles.h"
 #include "communication.h"
 
-#define TIMER_ID(handle)		(handle == ADC_TIMER ? 0 : INVALID_ID)
-#define TIMER_FREQUENCY(handle)		(handle == ADC_TIMER ? SYS_CLK : 0)
-#define TIMER_RESOLUTION(handle)	(handle == ADC_TIMER ? 32 : 0)
-#define TIMER_HANDLE(id)		(id == 0 ? ADC_TIMER : 0)
-
 void initTimer(TIM_HandleTypeDef* handle)
 {
 	stopTimer(handle);
@@ -27,6 +22,25 @@ void ctrlTimerController()
 	TIM_HandleTypeDef* handle = TIMER_HANDLE(receiveChar(-1));
 	if (!handle)
 		return;
+	uint32_t value;
+loop:
+	switch (receiveChar(-1)) {
+	case CTRL_START:
+		if (receiveChar(-1))
+			startTimer(handle);
+		else
+			stopTimer(handle);
+		break;
+	case CTRL_SET:
+		receiveData((uint8_t *)&value, TIMER_BYTES(handle), -1);
+		//HAL_TIM_Base_DeInit(handle);
+		handle->Init.Period = value;
+		HAL_TIM_Base_Init(handle);
+		break;
+	default:
+		return;
+	}
+	goto loop;
 }
 
 void ctrlTimerControllerGenerate(TIM_HandleTypeDef* handle)
