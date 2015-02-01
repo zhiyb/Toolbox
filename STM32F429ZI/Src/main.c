@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 31/01/2015 18:56:17
+  * Date               : 01/02/2015 05:21:37
   * Description        : Main program body
   ******************************************************************************
   *
@@ -252,7 +252,7 @@ void MX_TIM2_Init(void)
 	htim2.Instance = TIM2;
 	htim2.Init.Prescaler = 0;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim2.Init.Period = 45000000;
+	htim2.Init.Period = 90000000;
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	HAL_TIM_Base_Init(&htim2);
 
@@ -266,7 +266,7 @@ void MX_TIM2_Init(void)
 	HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig);
 
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 15000000;
+	sConfigOC.Pulse = 30000000;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
 	HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3);
@@ -327,8 +327,8 @@ void MX_UART8_Init(void)
 void MX_DMA_Init(void) 
 {
 	/* DMA controller clock enable */
-	__DMA1_CLK_ENABLE();
 	__DMA2_CLK_ENABLE();
+	__DMA1_CLK_ENABLE();
 
 	/* DMA interrupt init */
 	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);

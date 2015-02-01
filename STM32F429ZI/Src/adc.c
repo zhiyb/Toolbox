@@ -13,6 +13,16 @@ uint16_t result[CTRL_ADC_CHANNELS] = {0};
 uint16_t channelEnabled = 0xFFFF;
 uint8_t channelCount = CTRL_ADC_CHANNELS;
 
+uint32_t floatToRawUInt32(float x)
+{
+	union {
+		float f;	// assuming 32-bit IEEE 754 single-precision
+		uint32_t i;	// assuming 32-bit unsigned int
+	} u;
+	u.f = x;
+	return u.i;
+}
+
 void startADC(void)
 {
 	if (!channelCount)
@@ -82,6 +92,10 @@ loop:
 		else
 			stopADC();
 		break;
+	case CTRL_SET:
+		receiveData((uint8_t *)&channelEnabled, CTRL_ADC_BYTES, -1);
+		configureADC();
+		break;
 	default:
 		return;
 	}
@@ -91,8 +105,8 @@ loop:
 void ctrlADCControllerGenerate(void)
 {
 	const static char* channels[CTRL_ADC_CHANNELS] = {
-		"CHANNEL_3", "CHANNEL_6", "CHANNEL_8", "CHANNEL_9", "CHANNEL_10",
-		"CHANNEL_TEMPSENSOR", "CHANNEL_VBAT", "CHANNEL_VREFINT",
+		"CH_3", "CH_6", "CH_8", "CH_9", "CH_10",
+		"CH_TEMPSENSOR", "CH_VBAT", "CH_VREFINT",
 	};
 	sendChar(CMD_ANALOG);		// Analog waveform (ADC) customised controller
 	sendChar(CTRL_ADC_ID);			// ID
@@ -104,7 +118,10 @@ void ctrlADCControllerGenerate(void)
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
 		sendChar(i);			// Channel ID
 		sendString(channels[i]);	// Channel name
+		sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
+		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
 	}
+	sendValue(channelEnabled, CTRL_ADC_CHANNELS_BYTES);
 	ctrlTimerControllerGenerate(ADC_TIMER);	// ADC trigger timer information
 	sendChar(CMD_END);			// End settings
 }

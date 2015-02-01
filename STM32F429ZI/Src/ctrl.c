@@ -62,12 +62,12 @@ void ctrlRootLoop(void)
 			}
 			break;
 		case CMD_TIMER:
-			pause = 1;
+			//pause = 1;
 			sendChar(CMD_ACK);
 			ctrlTimerController();
 			break;
 		case CMD_CONTROLLER:
-			pause = 1;
+			//pause = 1;
 			sendChar(CMD_ACK);
 			switch (id = receiveChar(-1)) {
 			case CTRL_DAC1_ID:
