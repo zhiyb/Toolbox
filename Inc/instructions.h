@@ -3,7 +3,7 @@
 
 //#define PKG_SIZE	32
 //#define PKG_SYNC	(uint16_t)0xAA55
-#define FW_VERSION	1
+#define FW_VERSION	0
 #define INVALID_ID	__UINT8_MAX__
 
 #define CMD_NOP			'\x00'
