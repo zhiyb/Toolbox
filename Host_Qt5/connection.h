@@ -66,6 +66,7 @@ public slots:
 private slots:
 	//void pause(void);
 	void reset(void);
+	void resync(void);
 
 private:
 	void pushInfo(info_t *s);

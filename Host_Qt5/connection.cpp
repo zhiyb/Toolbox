@@ -16,9 +16,9 @@
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_SPEED	115200
+#define DATA_RATE_AVERAGE	10	// Need to be divisible by 60
 
-ConnectionSelection::ConnectionSelection(QWidget *parent) :
-	QDialog(parent)
+ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
 {
 	type = Connection::Network;
 	host = DEFAULT_NETWORK_HOST;
@@ -164,8 +164,11 @@ void Connection::waitForRead(const qint64 size, int msec)
 
 bool Connection::waitForReadAll(int count, int msec)
 {
-	while ((count != -1 || count--) && con->waitForReadyRead(msec));
+	//QByteArray data = con->readAll();
+	while ((count == -1 || count--) && con->waitForReadyRead(msec));
+		//data.append(con->readAll());
 	return count != 0;
+	//return data;
 }
 
 void Connection::writeChar(const char c)
@@ -188,10 +191,12 @@ void Connection::reset(void)
 	//pause();
 	//qDebug() << "Connection::reset";
 	do {
-		writeRepeatedChar(CMD_RESET, /*PKG_SIZE*/64);
+		resync();
+		//writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/32);
+		writeRepeatedChar(CMD_RESET, /*PKG_SIZE*/32);
 		waitForWrite();
 	} while (!waitForReadAll(3));
-	QByteArray data = con->readAll();
+	QByteArray data = con->readAll();//waitForReadAll(3);
 	if (!data.endsWith(CMD_ACK)) {
 		//qDebug() << data;
 		emit error(tr("Reset error, no acknowledge received: ") + data);
@@ -199,6 +204,11 @@ void Connection::reset(void)
 	}
 	//sendChar(CMD_ACK);
 	//waitForWrite();
+}
+
+void Connection::resync()
+{
+	writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/32);
 }
 
 void Connection::requestInfo(void)
@@ -299,11 +309,14 @@ void Connection::writeMessage(message_t &msg)
 	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
 send:
 	writeChar(msg.command);
-	//waitForWrite();
+	waitForWrite();
+	int count = 10;
 	char c;
-	while ((c = readData()) == 0);
-	if (c == -1)
+	while ((count == -1 || count--) && (c = readData()) == 0);
+	if (c == -1 || c == 0) {
+		resync();
 		goto send;
+	}
 	if (c != CMD_ACK) {
 		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg(c));
 		return;
@@ -500,9 +513,9 @@ void Connection::loop(void)
 	message_t msg;
 	while (!exit) {
 		//qDebug() << "loop.";
-		if (QTime::currentTime().second() % 4) {
+		if (QTime::currentTime().second() % DATA_RATE_AVERAGE) {
 			if (!rateDisplay) {
-				qDebug(tr("Data rate: %1").arg((float)dataCount / 4.f).toLocal8Bit());
+				qDebug(tr("Data rate: %1").arg((float)dataCount / (float)DATA_RATE_AVERAGE).toLocal8Bit());
 				dataCount = 0;
 				rateDisplay = true;
 			}
