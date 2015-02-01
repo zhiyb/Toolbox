@@ -5,6 +5,8 @@
 #include <inttypes.h>
 #include <instructions.h>
 
+#define DEFAULT_CHANNEL_COLOURS	8
+
 extern quint32 messageCount;
 
 struct message_t {
@@ -88,23 +90,33 @@ struct scale_t {
 struct analog_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_ANALOG;}
 	void init(void);
+	void calculate(void);
 	void update(void);
 	qreal gridTotalTime(void) {return timebase.scale.value() * (float)grid.count.width();}
-	quint32 channelCount(void) const;
-	quint32 channelEnabled(void) const;
-	quint32 channelEnabledBytes(void) const {return (channels.count() + 7) / 8;}
+	quint32 channelsCount(void) const;
+	void setChannelsEnabled(quint32 enabled);
+	quint32 channelsEnabledConfigure(void) const;
+	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
 
 	QString name;
 	quint32 scanFrequency;
 	struct channel_t {
-		channel_t(void) : id(INVALID_ID), enabled(true), colour(1.f, 0.f, 0.f, 1.f) {}
+		channel_t(void);
+		static const QColor defaultColours[DEFAULT_CHANNEL_COLOURS];
 
+		// Device information
 		quint8 id;
+		float reference, offset;
 		QString name;
 		bool enabled;
-		QVector4D colour;
+
+		struct configure_t {
+			bool enabled;
+			float displayOffset;
+			QVector4D colour;
+			scale_t scale;
+		} configure;
 		QVector<quint32> buffer;
-		scale_t scale;
 	};
 	QVector<channel_t> channels;
 	timer_t timer;
@@ -120,7 +132,8 @@ struct analog_t : public info_t, public resolution_t {
 
 	struct grid_t {
 		struct preference_t {
-			preference_t(void);
+			preference_t(void) : bgColour(0.f, 0.f, 0.f, 1.f), \
+				gridColour(0.5f, 0.5f, 0.5f, 1.f), gridPointSize(2) {}
 
 			QVector4D bgColour, gridColour;
 			int gridPointSize;

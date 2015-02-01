@@ -1,13 +1,19 @@
 #include "structures.h"
+#include "conv.h"
 #include <QDebug>
 #include <QObject>
 
 const qreal scale_t::factor[3] = {1, 2.5, 5};
 const quint32 analog_t::grid_t::preferredPointsPerGrid = 100;
 const quint32 analog_t::grid_t::minimumVerticalCount = 8;
-const quint32 analog_t::grid_t::maximumVerticalCount = 12;
+const quint32 analog_t::grid_t::maximumVerticalCount = 10;
+const QColor analog_t::channel_t::defaultColours[DEFAULT_CHANNEL_COLOURS] = {
+	Qt::red, Qt::green, Qt::blue, Qt::yellow,
+	Qt::cyan, Qt::magenta, Qt::gray, Qt::white,
+};
 
 quint32 messageCount = 0;
+static quint32 colourCount = 0;
 
 bool message_t::similar(const message_t &msg) const
 {
@@ -57,7 +63,7 @@ QString scale_t::toString(const qreal value)
 	return QString(units[unit]).arg(v);
 }
 
-quint32 analog_t::channelCount(void) const
+quint32 analog_t::channelsCount(void) const
 {
 	quint32 count = 0;
 	for (int i = 0; i < channels.count(); i++)
@@ -65,11 +71,20 @@ quint32 analog_t::channelCount(void) const
 	return count;
 }
 
-quint32 analog_t::channelEnabled(void) const
+void analog_t::setChannelsEnabled(quint32 enabled)
+{
+	quint32 mask = 1;
+	for (int i = 0; i < channels.count(); i++) {
+		channels[i].enabled = channels[i].configure.enabled = enabled & mask;
+		mask <<= 1;
+	}
+}
+
+quint32 analog_t::channelsEnabledConfigure(void) const
 {
 	quint32 enabled = 0, mask = 1;
 	for (int i = 0; i < channels.count(); i++) {
-		if (channels.at(i).enabled)
+		if (channels.at(i).configure.enabled)
 			enabled |= mask;
 		mask <<= 1;
 	}
@@ -81,12 +96,19 @@ void analog_t::init(void)
 	//update();
 }
 
-void analog_t::update(void)
+void analog_t::calculate(void)
 {
 	if (timebase.scanMode()) {
 		quint32 multiple = 1;
 		while (!timer.setFrequency(timebase.scale.value() * grid.preferredPointsPerGrid * multiple))
 			multiple++;
+	}
+}
+
+void analog_t::update(void)
+{
+	calculate();
+	if (timebase.scanMode()) {
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 		buffer.position = 0;
 		buffer.validSize = 0;
@@ -94,9 +116,18 @@ void analog_t::update(void)
 		buffer.position = 0;
 		buffer.validSize = buffer.sizePerChannel;
 	}
-	for (int i = 0; i < channels.count(); i++)
+	for (int i = 0; i < channels.count(); i++) {
+		channels[i].enabled = channels.at(i).configure.enabled;
 		channels[i].buffer.resize(buffer.sizePerChannel);
+	}
 }
 
-analog_t::grid_t::preference_t::preference_t(void) : bgColour(0.f, 0.f, 0.f, 1.f), \
-	gridColour(0.5f, 0.5f, 0.5f, 1.f), gridPointSize(3) {}
+analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
+{
+	QColor clr;
+	if (colourCount != sizeof(defaultColours) / sizeof(defaultColours[0]))
+		clr = defaultColours[colourCount++];
+	else
+		clr = QColor(qrand() % 256, qrand() % 256, qrand() % 256);
+	configure.colour = conv::colorToVector4D(clr);
+}

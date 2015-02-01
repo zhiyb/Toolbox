@@ -6,7 +6,7 @@
 #include "device.h"
 #include "analogwaveform.h"
 
-class Analog : public QDialog
+class Analog : public QWidget
 {
 	Q_OBJECT
 public:
@@ -18,13 +18,16 @@ signals:
 
 public slots:
 	void activate(void);
-	void messageSent(quint32 sequence) {Q_UNUSED(sequence);}
+	void messageSent(quint32 sequence);
 	void analogData(analog_t::data_t data);
 
 protected:
 	bool event(QEvent *e);
 	void showEvent(QShowEvent *e);
 	void hideEvent(QHideEvent *e);
+
+private slots:
+	void updateAt(quint32 sequence);
 
 private:
 	void initADC(void);
@@ -33,16 +36,17 @@ private:
 	//void startTimer(void);
 	//void stopTimer(void);
 	void configureTimer(void);
-	QGroupBox *buildChannelCtrl(const analog_t::channel_t &channel);
+	//QGroupBox *buildChannelCtrl(analog_t::channel_t &channel);
 	QGroupBox *buildTimebaseCtrl(void);
 	QGroupBox *buildTriggerCtrl(void);
 
 	QGridLayout *layout;
-	QVBoxLayout *channelLayout;
+	QGridLayout *channelLayout;
 	QGroupBox *trigger, *timebase;
 	AnalogWaveform *waveform;
 	Device *dev;
 	analog_t *analog;
+	quint32 updateSequence;
 };
 
 #endif // ANALOGWAVEFORM_H

@@ -9,7 +9,7 @@
 #include <QProgressDialog>
 #include <instructions.h>
 #include "connection.h"
-//#include "structures.h"
+#include "conv.h"
 
 #define DEFAULT_NETWORK_HOST	"192.168.0.36"
 //#define DEFAULT_NETWORK_HOST	"192.168.6.48"
@@ -132,6 +132,7 @@ Connection::Connection(QObject *parent) :
 	QObject(parent)
 {
 	//queueLock = false;
+	dataCount = 0;
 	exit = false;
 }
 
@@ -161,6 +162,12 @@ void Connection::waitForRead(const qint64 size, int msec)
 	}
 }
 
+bool Connection::waitForReadAll(int count, int msec)
+{
+	while ((count != -1 || count--) && con->waitForReadyRead(msec));
+	return count != 0;
+}
+
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
@@ -172,17 +179,18 @@ void Connection::writeRepeatedChar(const char c, const qint64 size)
 		writeChar(c);
 }
 
-void Connection::pause(void)
+/*void Connection::pause(void)
 {
-}
+}*/
 
 void Connection::reset(void)
 {
 	//pause();
 	//qDebug() << "Connection::reset";
-	writeRepeatedChar(CMD_RESET, /*PKG_SIZE*/32);
-	waitForWrite();
-	waitForReadAll();
+	do {
+		writeRepeatedChar(CMD_RESET, /*PKG_SIZE*/64);
+		waitForWrite();
+	} while (!waitForReadAll(3));
 	QByteArray data = con->readAll();
 	if (!data.endsWith(CMD_ACK)) {
 		//qDebug() << data;
@@ -289,10 +297,13 @@ void Connection::writeMessage(message_t &msg)
 {
 	//qDebug() << "writeMessage";
 	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
+send:
 	writeChar(msg.command);
 	//waitForWrite();
-	quint8 c;
+	char c;
 	while ((c = readData()) == 0);
+	if (c == -1)
+		goto send;
 	if (c != CMD_ACK) {
 		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg(c));
 		return;
@@ -339,6 +350,8 @@ device_t Connection::readDeviceInfo(void)
 	device_t device;
 	device.version = readValue(4);
 	device.name = readString();
+	if (device.version != FW_VERSION)
+		exit = true;
 	return device;
 }
 
@@ -414,8 +427,11 @@ analog_t *Connection::readAnalog(void)
 		analog_t::channel_t channel;
 		channel.id = readChar();
 		channel.name = readString();
-		analog->channels.push_back(channel);
+		channel.reference = conv::rawUInt32ToFloat(readValue(4));
+		channel.offset = conv::rawUInt32ToFloat(readValue(4));
+		analog->channels.append(channel);
 	}
+	analog->setChannelsEnabled(readValue(analog->channelsBytes()));
 	analog->timer = readTimer();
 	pushInfo(analog);
 	return analog;
@@ -436,9 +452,10 @@ analog_t::data_t Connection::readAnalogData(void)
 		return data;
 	}
 	data.type = readChar();
+	int count = analog->channelsCount();
 	switch (data.type) {
 	case CTRL_DATA:
-		for (int i = 0; i < analog->channels.count(); i++)
+		for (int i = 0; i < count; i++)
 			data.data.append(readValue(analog->bytes()));
 		break;
 	}
@@ -467,20 +484,30 @@ char Connection::readData(int msec)
 	case 'V':
 		qDebug(tr("%1: Received debug V").arg(QTime::currentTime().toString()).toLocal8Bit());
 	case ((quint8)-1):
-		break;
+		return -1;
 	default:
 		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
+	dataCount++;
 	return 0;
 }
 
 void Connection::loop(void)
 {
+	static bool rateDisplay = false;
 	bool send = false;
 	message_t msg;
 	while (!exit) {
 		//qDebug() << "loop.";
+		if (QTime::currentTime().second() % 4) {
+			if (!rateDisplay) {
+				qDebug(tr("Data rate: %1").arg((float)dataCount / 4.f).toLocal8Bit());
+				dataCount = 0;
+				rateDisplay = true;
+			}
+		} else
+			rateDisplay = false;
 		if (queueLock.tryLock()) {
 			if (!queue.isEmpty()) {
 				msg = queue.dequeue();

@@ -82,10 +82,10 @@ void Device::controllerInfo(controller_t *s)
 
 void Device::analogInfo(analog_t *s)
 {
-	qDebug(tr("Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, channels: %5").arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->channels.count()).toLocal8Bit());
+	qDebug(tr("Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, channels: %5, enabled: %6").arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->channels.count()).arg(s->channelsEnabledConfigure(), 0, 2).toLocal8Bit());
 	for (int i = 0; i < s->channels.count(); i++) {
 		const analog_t::channel_t &channel = s->channels.at(i);
-		qDebug(tr("  Channel ID: %1, name: %2").arg(channel.id).arg(channel.name).toLocal8Bit());
+		qDebug(tr("  Channel ID: %1, name: %2, reference: %3, offset: %4").arg(channel.id).arg(channel.name).arg(channel.reference).arg(channel.offset).toLocal8Bit());
 	}
 	qDebug(tr("  Timer ID: %1, resolution: %2, clock frequency: %3").arg(s->timer.id).arg(s->timer.resolution).arg(s->timer.clockFrequency).toLocal8Bit());
 	emit analog(s);

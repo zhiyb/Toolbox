@@ -23,7 +23,14 @@ private:
 	GLuint loadShader(GLenum type, const QByteArray& context);
 	GLuint loadShaderFile(GLenum type, const char *path);
 	GLuint createProgram(GLuint vsh, GLuint fsh);
-	GLuint fsh;
+	struct general_t {
+		struct lcoation_t {
+			GLuint vertex;			// attribute vec2
+			GLuint projection, modelView;	// uniform mat4
+			GLuint colour;			// uniform vec4
+		} location;
+		GLuint program, vsh, fsh;
+	} general;
 	struct grid_t {
 		struct location_t {
 			GLuint vertex;			// attribute vec2
@@ -38,20 +45,23 @@ private:
 	} grid;
 	struct wave_t {
 		struct location_t {
-			GLuint data, index;		// attribute int
-			GLuint maxValue, hCount;	// uniform int
-			GLuint timebase, frequency;	// uniform float
-			GLuint projection, modelView;	// uniform mat4
-			GLuint colour;			// uniform vec4
+			GLuint data, index;					// attribute int
+			GLuint hCount, vCount, maxValue;			// uniform int
+			GLuint timebase, frequency, reference, offset, scale;	// uniform float
+			GLuint projection, modelView;				// uniform mat4
+			GLuint colour;						// uniform vec4
 		} locationYT;
 
 		GLuint programYT, vshYT;
 	} wave;
+	struct stencil_t {
+		QVector<QVector2D> vertices;
+	} stencil;
 
 	QMatrix4x4 projection;
 	QVector<GLuint> indices;
 
-	void init(void);
+	bool init(void);
 	void generateGrid(void);
 
 	analog_t *analog;

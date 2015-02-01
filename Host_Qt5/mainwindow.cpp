@@ -37,7 +37,7 @@ bool MainWindow::event(QEvent *e)
 {
 	switch (e->type()) {
 	case QEvent::WindowActivate:
-		setWindowOpacity(1.00);
+		setWindowOpacity(0.90);
 		break;
 	case QEvent::WindowDeactivate:
 		setWindowOpacity(0.85);

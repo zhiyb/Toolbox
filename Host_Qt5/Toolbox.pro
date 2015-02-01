@@ -21,7 +21,10 @@ SOURCES += main.cpp\
     controller.cpp \
     structures.cpp \
     analog.cpp \
-    analogwaveform.cpp
+    analogwaveform.cpp \
+    scalevalue.cpp \
+    analogchannelctrl.cpp \
+    conv.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -30,9 +33,15 @@ HEADERS  += mainwindow.h \
     structures.h \
     controller.h \
     analog.h \
-    analogwaveform.h
+    analogwaveform.h \
+    scalevalue.h \
+    analogchannelctrl.h \
+    conv.h
+
+TRANSLATIONS = toolbox_en.ts
 
 DISTFILES += \
     fragment.fsh \
     gridvertex.vsh \
-    ytvertex.vsh
+    ytvertex.vsh \
+    vertex.vsh

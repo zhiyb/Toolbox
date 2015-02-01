@@ -64,7 +64,7 @@ public slots:
 	void requestInfo(void);
 
 private slots:
-	void pause(void);
+	//void pause(void);
 	void reset(void);
 
 private:
@@ -86,7 +86,7 @@ private:
 	QString readString(int msec = COMMUNICATION_WAIT);
 	void waitForWrite(int msec = COMMUNICATION_WAIT);
 	void waitForRead(const qint64 size, int msec = COMMUNICATION_WAIT);
-	void waitForReadAll(int msec = COMMUNICATION_WAIT) {while (con->waitForReadyRead(msec));}
+	bool waitForReadAll(int count = -1, int msec = COMMUNICATION_WAIT);
 
 	enum Types {Network = 0, SerialPort = 1};
 
@@ -94,7 +94,7 @@ private:
 	QQueue<message_t> queue;
 	QMutex queueLock;
 	QVector<info_t *> infos;
-	int type;
+	int type, dataCount;
 	volatile bool exit;//, queueLock;
 };
 
