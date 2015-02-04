@@ -66,9 +66,12 @@ struct timer_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_TIMER;}
 
 	bool setFrequency(const float freq);
-	float frequency(void) const {return (float)clockFrequency / (float)configure.value;}
+	void update(void) {value = configure.value;}
+	float frequency(void) const {return (float)clockFrequency / (float)value;}
+	float frequencyConfigure(void) const {return (float)clockFrequency / (float)configure.value;}
 
 	quint32 clockFrequency;
+	quint32 value;
 
 	struct configure_t {
 		quint32 value;
@@ -90,8 +93,8 @@ struct scale_t {
 struct analog_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_ANALOG;}
 	void init(void);
-	void calculate(void);
-	void update(void);
+	bool calculate(void);
+	bool update(void);
 	qreal gridTotalTime(void) {return timebase.scale.value() * (float)grid.count.width();}
 	quint32 channelsCount(void) const;
 	void setChannelsEnabled(quint32 enabled);
@@ -102,6 +105,7 @@ struct analog_t : public info_t, public resolution_t {
 	quint32 scanFrequency;
 	struct channel_t {
 		channel_t(void);
+		void update(const int bufferSize);
 		static const QColor defaultColours[DEFAULT_CHANNEL_COLOURS];
 
 		// Device information
@@ -121,9 +125,9 @@ struct analog_t : public info_t, public resolution_t {
 	QVector<channel_t> channels;
 	timer_t timer;
 
-	struct configure_t {
-		;//bool scanMode;
-	} configure;
+	/*struct configure_t {
+		;
+	} configure;*/
 
 	struct buffer_t {
 		quint32 sizePerChannel, maximunSize;
@@ -149,9 +153,16 @@ struct analog_t : public info_t, public resolution_t {
 	} grid;
 
 	struct timebase_t {
+		void update(void) {scale = configure.scale;}
 		bool scanMode(void) {return scale.value() >= 1;}
 
 		scale_t scale;
+
+		struct configure_t {
+			bool scanMode(void) {return scale.value() >= 1;}
+
+			scale_t scale;
+		} configure;
 	} timebase;
 
 	struct trigger_t {

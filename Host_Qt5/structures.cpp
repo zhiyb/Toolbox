@@ -4,7 +4,7 @@
 #include <QObject>
 
 const qreal scale_t::factor[3] = {1, 2.5, 5};
-const quint32 analog_t::grid_t::preferredPointsPerGrid = 100;
+const quint32 analog_t::grid_t::preferredPointsPerGrid = 150;
 const quint32 analog_t::grid_t::minimumVerticalCount = 8;
 const quint32 analog_t::grid_t::maximumVerticalCount = 10;
 const QColor analog_t::channel_t::defaultColours[DEFAULT_CHANNEL_COLOURS] = {
@@ -96,30 +96,35 @@ void analog_t::init(void)
 	//update();
 }
 
-void analog_t::calculate(void)
+bool analog_t::calculate(void)
 {
-	if (timebase.scanMode()) {
+	if (timebase.configure.scanMode()) {
+		grid.pointsPerGrid = grid.preferredPointsPerGrid;
 		quint32 multiple = 1;
-		while (!timer.setFrequency(timebase.scale.value() * grid.preferredPointsPerGrid * multiple))
+		while (!timer.setFrequency((float)grid.pointsPerGrid / timebase.configure.scale.value() * (float)multiple))
 			multiple++;
+		return true;
 	}
+	return false;
 }
 
-void analog_t::update(void)
+bool analog_t::update(void)
 {
-	calculate();
+	if (!calculate())
+		return false;
+	timer.update();
+	timebase.update();
 	if (timebase.scanMode()) {
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 		buffer.position = 0;
 		buffer.validSize = 0;
 	} else {
 		buffer.position = 0;
-		buffer.validSize = buffer.sizePerChannel;
+		buffer.validSize = 0;//buffer.sizePerChannel;
 	}
-	for (int i = 0; i < channels.count(); i++) {
-		channels[i].enabled = channels.at(i).configure.enabled;
-		channels[i].buffer.resize(buffer.sizePerChannel);
-	}
+	for (int i = 0; i < channels.count(); i++)
+		channels[i].update(buffer.sizePerChannel);
+	return true;
 }
 
 analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
@@ -130,4 +135,10 @@ analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 	else
 		clr = QColor(qrand() % 256, qrand() % 256, qrand() % 256);
 	configure.colour = conv::colorToVector4D(clr);
+}
+
+void analog_t::channel_t::update(const int bufferSize)
+{
+	enabled = configure.enabled;
+	buffer.resize(bufferSize);
 }

@@ -67,6 +67,7 @@ private slots:
 	//void pause(void);
 	void reset(void);
 	void resync(void);
+	void quickResync(void);
 
 private:
 	void pushInfo(info_t *s);
@@ -91,11 +92,19 @@ private:
 
 	enum Types {Network = 0, SerialPort = 1};
 
+	struct count_t {
+		count_t(void) : prev(QTime::currentTime()), txPackage(0), rxPackage(0), tx(0), rx(0) {}
+		void report(void);
+
+		QTime prev;
+		int txPackage, rxPackage, tx, rx;
+	} count;
+
 	QIODevice *con;
 	QQueue<message_t> queue;
 	QMutex queueLock;
 	QVector<info_t *> infos;
-	int type, dataCount;
+	int type;
 	volatile bool exit;//, queueLock;
 };
 

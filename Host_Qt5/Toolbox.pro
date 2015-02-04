@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     analogwaveform.cpp \
     scalevalue.cpp \
     analogchannelctrl.cpp \
-    conv.cpp
+    conv.cpp \
+    timebasectrl.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -36,7 +37,8 @@ HEADERS  += mainwindow.h \
     analogwaveform.h \
     scalevalue.h \
     analogchannelctrl.h \
-    conv.h
+    conv.h \
+    timebasectrl.h
 
 TRANSLATIONS = toolbox_en.ts
 

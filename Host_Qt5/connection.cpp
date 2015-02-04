@@ -16,7 +16,7 @@
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_SPEED	115200
-#define DATA_RATE_AVERAGE	10	// Need to be divisible by 60
+#define DATA_RATE_AVERAGE	5	// Need to be divisible by 60
 
 ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
 {
@@ -132,7 +132,7 @@ Connection::Connection(QObject *parent) :
 	QObject(parent)
 {
 	//queueLock = false;
-	dataCount = 0;
+	//dataCount = 0;
 	exit = false;
 }
 
@@ -174,6 +174,7 @@ bool Connection::waitForReadAll(int count, int msec)
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
+	count.tx++;
 }
 
 void Connection::writeRepeatedChar(const char c, const qint64 size)
@@ -209,6 +210,11 @@ void Connection::reset(void)
 void Connection::resync()
 {
 	writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/32);
+}
+
+void Connection::quickResync()
+{
+	writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/4);
 }
 
 void Connection::requestInfo(void)
@@ -262,11 +268,13 @@ void Connection::write(QByteArray &data)
 	/*if (data.size() >= PKG_SIZE)
 		return;*/
 	con->write(data);
+	count.tx += data.count();
 }
 
 void Connection::writeValue(const quint32 value, const quint32 bytes)
 {
 	con->write((char *)&value, bytes);
+	count.tx += bytes;
 }
 
 int Connection::readChar(int msec)
@@ -276,6 +284,7 @@ int Connection::readChar(int msec)
 	if (con->bytesAvailable() < 1)
 		return -1;
 	con->read(&c, 1);
+	count.rx++;
 	return c;
 }
 
@@ -286,6 +295,7 @@ quint32 Connection::readValue(const quint32 bytes, int msec)
 	if (con->bytesAvailable() < bytes)
 		return -1;
 	con->read((char *)&value, bytes);
+	count.rx += bytes;
 	//qDebug() << "Connection::readValue" << bytes << msec << value;
 	return value;
 }
@@ -307,6 +317,7 @@ void Connection::writeMessage(message_t &msg)
 {
 	//qDebug() << "writeMessage";
 	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
+	quickResync();
 send:
 	writeChar(msg.command);
 	waitForWrite();
@@ -331,6 +342,7 @@ send:
 			break;
 		writeValue(set.value, set.bytes);
 	}
+	this->count.txPackage++;
 	emit messageSent(msg.sequence);
 }
 
@@ -502,25 +514,24 @@ char Connection::readData(int msec)
 		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
-	dataCount++;
+	count.rxPackage++;
 	return 0;
 }
 
 void Connection::loop(void)
 {
-	static bool rateDisplay = false;
+	static bool rateDisplay = true;
 	bool send = false;
 	message_t msg;
 	while (!exit) {
 		//qDebug() << "loop.";
 		if (QTime::currentTime().second() % DATA_RATE_AVERAGE) {
-			if (!rateDisplay) {
-				qDebug(tr("Data rate: %1").arg((float)dataCount / (float)DATA_RATE_AVERAGE).toLocal8Bit());
-				dataCount = 0;
-				rateDisplay = true;
+			if (rateDisplay) {
+				count.report();
+				rateDisplay = false;
 			}
 		} else
-			rateDisplay = false;
+			rateDisplay = true;
 		if (queueLock.tryLock()) {
 			if (!queue.isEmpty()) {
 				msg = queue.dequeue();
@@ -547,4 +558,20 @@ void Connection::enqueue(const message_t &msg)
 	queue.enqueue(msg);
 	//queueLock = false;
 	queueLock.unlock();
+}
+
+
+void Connection::count_t::report(void)
+{
+	int elapsed = prev.secsTo(QTime::currentTime());
+	if (!elapsed)
+		return;
+	prev = QTime::currentTime();
+	qDebug(tr("Data rate: tx: %1 B/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
+	       .arg((float)tx / (float)elapsed).arg((float)txPackage / (float)elapsed)\
+	       .arg((float)rx / (float)elapsed).arg((float)rxPackage / (float)elapsed).toLocal8Bit());
+	txPackage = 0;
+	rxPackage = 0;
+	tx = 0;
+	rx = 0;
 }

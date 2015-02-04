@@ -215,7 +215,7 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
-#if 1
+#if 0
 			glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.position);
 			glDrawArrays(GL_LINE_STRIP, analog->buffer.position, analog->buffer.validSize - analog->buffer.position);
 			//glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.sizePerChannel);

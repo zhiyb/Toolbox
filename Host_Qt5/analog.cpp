@@ -63,9 +63,11 @@ void Analog::rebuild(analog_t *analog)
 	setWindowTitle(analog->name);
 	initADC();
 
-	QGroupBox *origTrigger = trigger, *origTimebase = timebase;
+	QGroupBox *origTrigger = trigger;
+	TimebaseCtrl *origTimebase = timebase;
 	trigger = buildTriggerCtrl();
-	timebase = buildTimebaseCtrl();
+	timebase = new TimebaseCtrl(dev, analog);
+	connect(timebase, SIGNAL(updateAt(quint32)), this, SLOT(updateAt(quint32)));
 	if (!origTrigger)
 		layout->addWidget(trigger, 0, 2);
 	else
@@ -177,15 +179,6 @@ void Analog::analogData(analog_t::data_t data)
 		break;
 	}
 	waveform->update();
-}
-
-QGroupBox *Analog::buildTimebaseCtrl(void)
-{
-	QGroupBox *gb = new QGroupBox(tr("Timebase"));
-	QVBoxLayout *lay = new QVBoxLayout(gb);
-	QLabel *lID = new QLabel(tr("Hello, world!"));
-	lay->addWidget(lID);
-	return gb;
 }
 
 QGroupBox *Analog::buildTriggerCtrl(void)
