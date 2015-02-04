@@ -1,6 +1,8 @@
 #include "analogwaveform.h"
 
 #define MINIMUM_SIZE_SQUARE	480
+#define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
+//#define WAVE_YT_DRAW_MODE	GL_POINTS
 
 AnalogWaveform::AnalogWaveform(QWidget *parent) : QOpenGLWidget(parent)
 {
@@ -38,9 +40,9 @@ bool AnalogWaveform::init(void)
 		vSize = grid.minimumVerticalCount;
 	if (vSize > grid.maximumVerticalCount)
 		vSize = grid.maximumVerticalCount;
-	grid.pointsPerGrid = grid.displaySize.height() / vSize;
+	int pointsPerGrid = grid.displaySize.height() / vSize;
 	grid.count.setHeight(vSize);
-	grid.count.setWidth(grid.displaySize.width() / grid.pointsPerGrid);
+	grid.count.setWidth(grid.displaySize.width() / pointsPerGrid);
 	grid.count.setWidth(grid.count.width() - grid.count.width() % 2);
 	if (grid.count.width() <= 0)
 		grid.count.setWidth(2);
@@ -215,13 +217,10 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
-#if 0
-			glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.position);
-			glDrawArrays(GL_LINE_STRIP, analog->buffer.position, analog->buffer.validSize - analog->buffer.position);
-			//glDrawArrays(GL_LINE_STRIP, 0, analog->buffer.sizePerChannel);
-#else
-			glDrawArrays(GL_POINTS, 0, analog->buffer.validSize);
-#endif
+			glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
+			if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)
+				glDrawArrays(WAVE_YT_DRAW_MODE, analog->buffer.position + analog->grid.pointsPerGrid / 5,\
+					     analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5);
 		}
 	}
 	glDisableVertexAttribArray(wave.locationYT.data);
