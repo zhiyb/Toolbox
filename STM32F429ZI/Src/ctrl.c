@@ -80,6 +80,7 @@ void ctrlRootLoop(void)
 			pause = 1;
 			sendChar(CMD_ACK);
 			ctrlDeviceInfo();
+		case INVALID_ID:
 			break;
 		/*default:
 			sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
