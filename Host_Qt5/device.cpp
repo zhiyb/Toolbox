@@ -26,9 +26,7 @@ bool Device::init(void)
 	connect(con, SIGNAL(error(QString)), this, SLOT(error(QString)));
 	connect(con, SIGNAL(info(info_t *)), this, SLOT(info(info_t *)));
 	connect(con, SIGNAL(device(device_t)), this, SLOT(device(device_t)));
-	connect(con, SIGNAL(messageSent(quint32)), this, SLOT(message(quint32)));
-	//connect(con, SIGNAL(controller(controller_t)), this, SLOT(controllerInfo(controller_t)));
-	//connect(con, SIGNAL(analog(analog_t)), this, SLOT(analogInfo(analog_t)));
+	connect(con, SIGNAL(messageSent(quint32)), this, SIGNAL(messageSent(quint32)));
 	if (!con->init()) {
 		error(tr("Connection initialise failed"));
 		return false;

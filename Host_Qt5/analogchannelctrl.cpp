@@ -58,6 +58,7 @@ void AnalogChannelCtrl::enabledChanged()
 	channel->configure.enabled = enabled->isChecked();
 	analog->calculate();
 	message_t msg;
+	emit updateAt(msg.sequence);
 	msg.command = CMD_ANALOG;
 	msg.id = analog->id;
 	message_t::set_t set;
@@ -66,6 +67,6 @@ void AnalogChannelCtrl::enabledChanged()
 	set.bytes = analog->channelsBytes();
 	msg.settings.append(set);
 	msg.settings.append(message_t::set_t());
-	emit updateAt(msg.sequence);
+	//qDebug(tr("AnalogChannelCtrl: message %1").arg(msg.sequence).toLocal8Bit());
 	dev->send(msg);
 }

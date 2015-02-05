@@ -59,7 +59,7 @@ void MainWindow::controller(controller_t *s)
 {
 	Controller *w = findChild<Controller *>(QString::number(s->id), Qt::FindDirectChildrenOnly);
 	if (!w) {
-		Controller *c = new Controller(s, this);
+		Controller *c = new Controller(s);
 		connect(c, SIGNAL(message(message_t)), dev, SLOT(send(message_t)));
 		connect(dev, SIGNAL(messageSent(quint32)), c, SLOT(messageSent(quint32)));
 		layout->addWidget(c);

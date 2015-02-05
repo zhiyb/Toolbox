@@ -11,8 +11,8 @@
 #include "connection.h"
 #include "conv.h"
 
-#define DEFAULT_NETWORK_HOST	"192.168.0.36"
-//#define DEFAULT_NETWORK_HOST	"192.168.6.48"
+//#define DEFAULT_NETWORK_HOST	"192.168.0.36"
+#define DEFAULT_NETWORK_HOST	"192.168.6.48"
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_SPEED	115200
@@ -128,13 +128,7 @@ void ConnectionSelection::accept(void)
 
 // ********************************************************************************
 
-Connection::Connection(QObject *parent) :
-	QObject(parent)
-{
-	//queueLock = false;
-	//dataCount = 0;
-	exit = false;
-}
+Connection::Connection(QObject *parent) : QObject(parent), exit(false) {}
 
 Connection::~Connection(void)
 {
@@ -325,11 +319,11 @@ send:
 	char c;
 	while ((count == -1 || count--) && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
-		resync();
+		quickResync();
 		goto send;
 	}
 	if (c != CMD_ACK) {
-		emit error(QString(tr("No ACK received for command '%1': %2")).arg(msg.command).arg(c));
+		emit error(QString(tr("Message %1: No ACK received for command '%2': %3(%4)")).arg(msg.sequence).arg(msg.command).arg((quint8)c).arg(c));
 		return;
 	}
 	if (msg.id != INVALID_ID)
@@ -478,6 +472,7 @@ analog_t::data_t Connection::readAnalogData(void)
 	}
 	data.type = readChar();
 	int count = analog->channelsCount();
+	//qDebug(tr("Connection::readAnalogData: %1").arg(count).toLocal8Bit());
 	switch (data.type) {
 	case CTRL_DATA:
 		for (int i = 0; i < count; i++)
@@ -567,7 +562,7 @@ void Connection::count_t::report(void)
 	if (!elapsed)
 		return;
 	prev = QTime::currentTime();
-	qDebug(tr("Data rate: tx: %1 B/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
+	qDebug(tr("Data rate: tx: %1 bytes/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
 	       .arg((float)tx / (float)elapsed).arg((float)txPackage / (float)elapsed)\
 	       .arg((float)rx / (float)elapsed).arg((float)rxPackage / (float)elapsed).toLocal8Bit());
 	txPackage = 0;

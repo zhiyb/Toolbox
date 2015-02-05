@@ -153,6 +153,7 @@ void Analog::messageSent(quint32 sequence)
 {
 	if (!updateSequence || sequence != updateSequence)
 		return;
+	//qDebug(tr("Analog::messageSent: %1").arg(sequence).toLocal8Bit());
 	updateSequence = 0;
 	analog->update();
 	startADC();
@@ -166,6 +167,10 @@ void Analog::analogData(analog_t::data_t data)
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
+		if (data.data.count() != (int)analog->channelsCount()) {
+			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			break;
+		}
 		for (int i = 0; i < analog->channels.count(); i++)
 			if (analog->channels.at(i).enabled)
 				analog->channels[i].buffer[analog->buffer.position] = data.data.at(count++);

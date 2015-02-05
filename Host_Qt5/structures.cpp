@@ -100,9 +100,8 @@ bool analog_t::calculate(void)
 {
 	if (timebase.configure.scanMode()) {
 		grid.pointsPerGrid = grid.preferredPointsPerGrid;
-		quint32 multiple = 1;
-		while (!timer.setFrequency((float)grid.pointsPerGrid / timebase.configure.scale.value() * (float)multiple))
-			multiple++;
+		if (!timer.setFrequency((float)grid.pointsPerGrid / timebase.configure.scale.value()))
+			timer.value = timer.maximum();
 		return true;
 	}
 	return false;
@@ -114,14 +113,10 @@ bool analog_t::update(void)
 		return false;
 	timer.update();
 	timebase.update();
-	if (timebase.scanMode()) {
+	if (timebase.scanMode())
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
-		buffer.position = 0;
-		buffer.validSize = 0;
-	} else {
-		buffer.position = 0;
-		buffer.validSize = 0;//buffer.sizePerChannel;
-	}
+	buffer.position = 0;
+	buffer.validSize = 0;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);
 	return true;

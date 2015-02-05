@@ -29,7 +29,6 @@ private slots:
 	void error(QString str);
 	void info(info_t *s);
 	void device(device_t s);
-	void message(quint32 sequence) {emit messageSent(sequence);}
 
 private:
 	void controllerInfo(controller_t *s);
