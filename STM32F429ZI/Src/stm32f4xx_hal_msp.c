@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : stm32f4xx_hal_msp.c
-  * Date               : 01/02/2015 05:21:36
+  * Date               : 05/02/2015 11:06:43
   * Description        : This file provides code for the MSP Initialization 
   *                      and de-Initialization codes.
   ******************************************************************************
@@ -38,6 +38,8 @@
 extern DMA_HandleTypeDef hdma_adc1;
 
 extern DMA_HandleTypeDef hdma_uart8_tx;
+
+extern DMA_HandleTypeDef hdma_uart8_rx;
 
 /* USER CODE BEGIN 0 */
 
@@ -205,40 +207,6 @@ void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
 
 }
 
-void HAL_RNG_MspInit(RNG_HandleTypeDef* hrng)
-{
-
-  if(hrng->Instance==RNG)
-  {
-  /* USER CODE BEGIN RNG_MspInit 0 */
-
-  /* USER CODE END RNG_MspInit 0 */
-    /* Peripheral clock enable */
-    __RNG_CLK_ENABLE();
-  /* USER CODE BEGIN RNG_MspInit 1 */
-
-  /* USER CODE END RNG_MspInit 1 */
-  }
-
-}
-
-void HAL_RNG_MspDeInit(RNG_HandleTypeDef* hrng)
-{
-
-  if(hrng->Instance==RNG)
-  {
-  /* USER CODE BEGIN RNG_MspDeInit 0 */
-
-  /* USER CODE END RNG_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __RNG_CLK_DISABLE();
-  /* USER CODE BEGIN RNG_MspDeInit 1 */
-
-  /* USER CODE END RNG_MspDeInit 1 */
-  }
-
-}
-
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 {
 
@@ -349,7 +317,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF8_UART8;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
@@ -371,6 +339,20 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_DMA_Init(&hdma_uart8_tx);
 
     __HAL_LINKDMA(huart,hdmatx,hdma_uart8_tx);
+
+    hdma_uart8_rx.Instance = DMA1_Stream6;
+    hdma_uart8_rx.Init.Channel = DMA_CHANNEL_5;
+    hdma_uart8_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+    hdma_uart8_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+    hdma_uart8_rx.Init.MemInc = DMA_MINC_ENABLE;
+    hdma_uart8_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    hdma_uart8_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    hdma_uart8_rx.Init.Mode = DMA_CIRCULAR;
+    hdma_uart8_rx.Init.Priority = DMA_PRIORITY_VERY_HIGH;
+    hdma_uart8_rx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+    HAL_DMA_Init(&hdma_uart8_rx);
+
+    __HAL_LINKDMA(huart,hdmarx,hdma_uart8_rx);
 
   /* USER CODE BEGIN UART8_MspInit 1 */
 
@@ -398,6 +380,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
 
     /* Peripheral DMA DeInit*/
     HAL_DMA_DeInit(huart->hdmatx);
+    HAL_DMA_DeInit(huart->hdmarx);
   /* USER CODE BEGIN UART8_MspDeInit 1 */
 
   /* USER CODE END UART8_MspDeInit 1 */

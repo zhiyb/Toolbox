@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 
+void initUART(void);
 void pollSending(void);
 void sendData(uint8_t *buffer, uint32_t length);
 //void send(uint8_t *buffer);

@@ -93,9 +93,10 @@ loop:
 			stopADC();
 		break;
 	case CTRL_SET:
-		receiveData((uint8_t *)&channelEnabled, CTRL_ADC_BYTES, -1);
+		receiveData((uint8_t *)&channelEnabled, CTRL_ADC_CHANNELS_BYTES, -1);
 		configureADC();
 		break;
+	case INVALID_ID:
 	default:
 		return;
 	}
@@ -133,8 +134,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	adcTxBufferLength = 3 + channelCount * 2;
 	for (i = 0; i < channelCount; i++)
 		*(uint16_t *)&adcTxBuffer[3 + i * 2] = result[i];
-	if (!pause)
-		sendData(adcTxBuffer, adcTxBufferLength);
-	else
+	if (pause)
 		adcTxBufferRequest++;
+	else
+		sendData(adcTxBuffer, adcTxBufferLength);
 }

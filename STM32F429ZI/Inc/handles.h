@@ -3,7 +3,7 @@
 
 #include "stm32f4xx_hal.h"
 
-#define HUART		huart8
+#define HUART		(&huart8)
 
 #define ADC_HW		(&hadc1)
 extern ADC_HandleTypeDef hadc1;
@@ -11,7 +11,7 @@ extern DMA_HandleTypeDef hdma_adc1;
 
 extern DAC_HandleTypeDef hdac;
 
-extern RNG_HandleTypeDef hrng;
+//extern RNG_HandleTypeDef hrng;
 
 #define ADC_TIMER		(&htim5)
 #define ADC_TIMER_CHANNEL	TIM_CHANNEL_1

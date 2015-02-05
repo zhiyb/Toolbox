@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 01/02/2015 05:21:37
+  * Date               : 05/02/2015 11:06:44
   * Description        : Main program body
   ******************************************************************************
   *
@@ -50,13 +50,12 @@ DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
 
-RNG_HandleTypeDef hrng;
-
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim5;
 
 UART_HandleTypeDef huart8;
 DMA_HandleTypeDef hdma_uart8_tx;
+DMA_HandleTypeDef hdma_uart8_rx;
 
 /* USER CODE BEGIN PV */
 //uint8_t uartBuffer[2][PKG_SIZE];
@@ -69,7 +68,6 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_DAC_Init(void);
-static void MX_RNG_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_UART8_Init(void);
@@ -81,10 +79,7 @@ void init(void);
 /* USER CODE BEGIN 0 */
 void init(void)
 {
-	//HUART.Instance->CR3 |= USART_CR3_DMAR;
-	//while (HAL_DMAEx_MultiBufferStart(HUART.hdmarx, (uint32_t)&HUART.Instance->DR, (uint32_t)uartBuffer[0], (uint32_t)uartBuffer[1], PKG_SIZE) != HAL_OK);
-	HUART.Instance->CR3 |= USART_CR3_DMAT;
-	sendString(__DATE__ ", " __TIME__ " | Hello, world!\r\n");
+	initUART();
 	initDAC();
 	initADC();
 	HAL_TIM_OC_Start(&htim2, TIM_CHANNEL_3);
@@ -115,7 +110,6 @@ int main(void)
 	MX_DMA_Init();
 	MX_ADC1_Init();
 	MX_DAC_Init();
-	MX_RNG_Init();
 	MX_TIM2_Init();
 	MX_TIM5_Init();
 	MX_UART8_Init();
@@ -232,15 +226,6 @@ void MX_DAC_Init(void)
 
 }
 
-/* RNG init function */
-void MX_RNG_Init(void)
-{
-
-	hrng.Instance = RNG;
-	HAL_RNG_Init(&hrng);
-
-}
-
 /* TIM2 init function */
 void MX_TIM2_Init(void)
 {
@@ -333,6 +318,8 @@ void MX_DMA_Init(void)
 	/* DMA interrupt init */
 	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
+	HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
 	HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 1, 0);
 	HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
