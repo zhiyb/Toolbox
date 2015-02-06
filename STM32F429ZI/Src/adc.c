@@ -141,6 +141,7 @@ void ctrlADCControllerGenerate(void)
 	sendString("ADC");			// Name
 	sendChar(CTRL_ADC_RESOLUTION);		// Result resolution (bits)
 	sendValue(CTRL_ADC_SCAN_FREQUENCY, 4);	// Scan mode maximum transfer frequency
+	sendValue(CTRL_ADC_MAX_FREQUENCY, 4);	// Maximum sampling frequency
 	sendChar(CTRL_ADC_CHANNELS);		// Channels
 	uint8_t i;
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
