@@ -4,7 +4,7 @@
 #define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
 //#define WAVE_YT_DRAW_MODE	GL_POINTS
 
-AnalogWaveform::AnalogWaveform(QWidget *parent) : QOpenGLWidget(parent)
+AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(parent)
 {
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	setMinimumSize(MINIMUM_SIZE_SQUARE, MINIMUM_SIZE_SQUARE);
@@ -17,6 +17,8 @@ AnalogWaveform::AnalogWaveform(QWidget *parent) : QOpenGLWidget(parent)
 	stencil.vertices.append(QVector2D(1, -1));
 	stencil.vertices.append(QVector2D(1, 1));
 	stencil.vertices.append(QVector2D(-1, 1));
+
+	this->dev = dev;
 }
 
 AnalogWaveform::~AnalogWaveform()
@@ -148,8 +150,38 @@ void AnalogWaveform::initializeGL(void)
 
 void AnalogWaveform::resizeGL(int w, int h)
 {
-	if (init())
-		analog->update();
+	if (init()) {
+		analog->calculate();
+		if (analog->timebase.scanMode())
+			analog->update();
+		else {
+			message_t msg;
+			msg.command = CMD_ANALOG;
+			msg.id = analog->id;
+			message_t::set_t set;
+			set.id = CTRL_START;				// Stop ADC
+			set.value = 0;
+			set.bytes = 1;
+			msg.settings.append(set);
+			set.id = CTRL_FRAME;				// Set frame(buffer) length per channel
+			set.value = analog->buffer.configure.sizePerChannel;
+			set.bytes = 4;
+			msg.settings.append(set);
+			msg.settings.append(message_t::set_t());	// End settings
+			dev->send(msg);
+
+			msg = message_t();
+			emit updateAt(msg.sequence);
+			msg.command = CMD_TIMER;
+			msg.id = analog->timer.id;
+			set.id = CTRL_SET;				// Set timer
+			set.value = analog->timer.configure.value;
+			set.bytes = analog->timer.bytes();
+			msg.settings.append(set);
+			msg.settings.append(message_t::set_t());	// End settings
+			dev->send(msg);
+		}
+	}
 	glViewport(0, 0, w, h);
 	QSize count = analog->grid.count;
 	float x = (float)w / ((float)h / count.height() * count.width());
@@ -217,10 +249,13 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
-			glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
-			if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)
-				glDrawArrays(WAVE_YT_DRAW_MODE, analog->buffer.position + analog->grid.pointsPerGrid / 5,\
-					     analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5);
+			if (analog->timebase.scanMode()) {
+				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
+				if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)
+					glDrawArrays(WAVE_YT_DRAW_MODE, analog->buffer.position + analog->grid.pointsPerGrid / 5,\
+						     analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5);
+			} else
+				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.validSize);
 		}
 	}
 	glDisableVertexAttribArray(wave.locationYT.data);

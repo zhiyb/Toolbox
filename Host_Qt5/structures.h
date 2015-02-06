@@ -83,8 +83,8 @@ struct scale_t {
 	qreal value(void) const {return (qreal)1 / divide * base * factor[seq];}
 	QString toString(void) const {return toString(this->value());}
 	static QString toString(const qreal value);
-	void decrease(void);
-	void increase(void);
+	bool decrease(void);
+	bool increase(void);
 
 	static const qreal factor[3];
 	quint32 base, divide, seq;
@@ -94,7 +94,7 @@ struct analog_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_ANALOG;}
 	void init(void);
 	bool calculate(void);
-	bool update(void);
+	void update(void);
 	qreal gridTotalTime(void) {return timebase.scale.value() * (float)grid.count.width();}
 	quint32 channelsCount(void) const;
 	void setChannelsEnabled(quint32 enabled);
@@ -114,6 +114,7 @@ struct analog_t : public info_t, public resolution_t {
 		QString name;
 		bool enabled;
 
+		// Configure
 		struct configure_t {
 			bool enabled;
 			float displayOffset;
@@ -130,6 +131,13 @@ struct analog_t : public info_t, public resolution_t {
 	} configure;*/
 
 	struct buffer_t {
+		// Device information
+		quint32 size;
+
+		// Configure
+		struct configure_t {
+			quint32 sizePerChannel;
+		} configure;
 		quint32 sizePerChannel, maximunSize;
 		quint32 position, validSize;
 	} buffer;
@@ -144,12 +152,12 @@ struct analog_t : public info_t, public resolution_t {
 		} preference;
 
 		static const quint32 preferredPointsPerGrid;
-		static const quint32 minimumVerticalCount;
+		static const quint32 minimumPointsPerGrid;
 		static const quint32 maximumVerticalCount;
+		static const quint32 minimumVerticalCount;
 
 		quint32 pointsPerGrid;
 		QSize count, displaySize;
-		//quint32 horizontalCount, verticalCount;
 	} grid;
 
 	struct timebase_t {

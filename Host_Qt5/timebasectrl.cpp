@@ -22,15 +22,35 @@ void TimebaseCtrl::scaleChanged()
 		scale->updateValue();
 	} else {
 		message_t msg;
-		msg.command = CMD_TIMER;
-		msg.id = analog->id;
 		message_t::set_t set;
-		set.id = CTRL_SET;
+		msg.command = CMD_ANALOG;
+		msg.id = analog->id;
+		set.id = CTRL_START;				// Stop ADC
+		set.value = 0;
+		set.bytes = 1;
+		msg.settings.append(set);
+		set.id = CTRL_DATA;				// Set data format
+		set.value = analog->timebase.configure.scanMode() ? CTRL_DATA : CTRL_FRAME;
+		set.bytes = 1;
+		msg.settings.append(set);
+		if (!analog->timebase.configure.scanMode()) {
+			set.id = CTRL_FRAME;			// Set frame(buffer) length per channel
+			set.value = analog->buffer.configure.sizePerChannel;
+			set.bytes = 4;
+			msg.settings.append(set);
+		}
+		msg.settings.append(message_t::set_t());	// End settings
+		dev->send(msg);
+
+		msg = message_t();
+		emit updateAt(msg.sequence);
+		msg.command = CMD_TIMER;
+		msg.id = analog->timer.id;
+		set.id = CTRL_SET;				// Set timer
 		set.value = analog->timer.configure.value;
 		set.bytes = analog->timer.bytes();
 		msg.settings.append(set);
-		msg.settings.append(message_t::set_t());
-		emit updateAt(msg.sequence);
+		msg.settings.append(message_t::set_t());	// End settings
 		dev->send(msg);
 	}
 }

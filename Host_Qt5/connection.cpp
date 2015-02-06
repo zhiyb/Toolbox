@@ -15,7 +15,7 @@
 #define DEFAULT_NETWORK_HOST	"192.168.6.48"
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
-#define DEFAULT_SERIAL_SPEED	115200
+#define DEFAULT_SERIAL_SPEED	BAUD
 #define DATA_RATE_AVERAGE	5	// Need to be divisible by 60
 
 ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
@@ -158,11 +158,8 @@ void Connection::waitForRead(const qint64 size, int msec)
 
 bool Connection::waitForReadAll(int count, int msec)
 {
-	//QByteArray data = con->readAll();
 	while ((count == -1 || count--) && con->waitForReadyRead(msec));
-		//data.append(con->readAll());
 	return count != 0;
-	//return data;
 }
 
 void Connection::writeChar(const char c)
@@ -177,38 +174,29 @@ void Connection::writeRepeatedChar(const char c, const qint64 size)
 		writeChar(c);
 }
 
-/*void Connection::pause(void)
+bool Connection::reset(void)
 {
-}*/
-
-void Connection::reset(void)
-{
-	//pause();
 	//qDebug() << "Connection::reset";
-	do {
-		resync();
-		//writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/32);
-		writeRepeatedChar(CMD_RESET, /*PKG_SIZE*/32);
-		waitForWrite();
-	} while (!waitForReadAll(3));
-	QByteArray data = con->readAll();//waitForReadAll(3);
+	resync();
+	writeRepeatedChar(CMD_RESET, 16);
+	waitForWrite();
+	waitForReadAll(3);
+	QByteArray data = con->readAll();
 	if (!data.endsWith(CMD_ACK)) {
-		//qDebug() << data;
 		emit error(tr("Reset error, no acknowledge received: ") + data);
-		return;
+		return false;
 	}
-	//sendChar(CMD_ACK);
-	//waitForWrite();
+	return true;
 }
 
 void Connection::resync()
 {
-	writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/32);
+	writeRepeatedChar(INVALID_ID, 16);
 }
 
 void Connection::quickResync()
 {
-	writeRepeatedChar(INVALID_ID, /*PKG_SIZE*/4);
+	writeRepeatedChar(INVALID_ID, 5);
 }
 
 void Connection::requestInfo(void)
@@ -253,14 +241,11 @@ bool Connection::init(void)
 	default:
 		return false;
 	}
-	reset();
-	return true;
+	return reset();
 }
 
 void Connection::write(QByteArray &data)
 {
-	/*if (data.size() >= PKG_SIZE)
-		return;*/
 	con->write(data);
 	count.tx += data.count();
 }
@@ -309,7 +294,6 @@ QString Connection::readString(int msec)
 
 void Connection::writeMessage(message_t &msg)
 {
-	//qDebug() << "writeMessage";
 	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
 	quickResync();
 send:
@@ -376,7 +360,6 @@ device_t Connection::readDeviceInfo(void)
 
 controller_t* Connection::readController(void)
 {
-	//qDebug() << "Connection::readController";
 	controller_t *ctrl = new controller_t;
 	ctrl->id = readChar();
 	if (ctrl->id == INVALID_ID) {
@@ -403,8 +386,6 @@ controller_t* Connection::readController(void)
 			set.value = readValue(set.bytes());
 			set.name = readString();
 			break;
-		/*case CMD_END:
-			return ctrl;*/
 		}
 		ctrl->controls.append(set);
 	}
@@ -451,6 +432,7 @@ analog_t *Connection::readAnalog(void)
 		analog->channels.append(channel);
 	}
 	analog->setChannelsEnabled(readValue(analog->channelsBytes()));
+	analog->buffer.size = readValue(4);
 	analog->timer = readTimer();
 	pushInfo(analog);
 	return analog;
@@ -471,12 +453,18 @@ analog_t::data_t Connection::readAnalogData(void)
 		return data;
 	}
 	data.type = readChar();
-	int count = analog->channelsCount();
+	quint32 count = analog->channelsCount();
 	//qDebug(tr("Connection::readAnalogData: %1").arg(count).toLocal8Bit());
+	data.data.resize(count);
 	switch (data.type) {
+	case CTRL_FRAME:
+		data.data.resize(analog->buffer.sizePerChannel * analog->channelsCount());
+		count = readValue(4);
+		for (quint32 i = count; i < analog->buffer.sizePerChannel * analog->channelsCount(); i++)
+			data.data[i] = readValue(analog->bytes());
 	case CTRL_DATA:
-		for (int i = 0; i < count; i++)
-			data.data.append(readValue(analog->bytes()));
+		for (quint32 i = 0; i < count; i++)
+			data.data[i] = readValue(analog->bytes());
 		break;
 	}
 	return data;
@@ -484,8 +472,8 @@ analog_t::data_t Connection::readAnalogData(void)
 
 char Connection::readData(int msec)
 {
+	static quint32 cnt = 0;
 	quint8 c = readChar(msec);
-	//qDebug() << "Connection::readData:" << c;
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
@@ -506,7 +494,8 @@ char Connection::readData(int msec)
 	case ((quint8)-1):
 		return -1;
 	default:
-		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+		if (!(cnt++ % 1000))
+			qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
 	count.rxPackage++;
@@ -545,16 +534,12 @@ void Connection::loop(void)
 
 void Connection::enqueue(const message_t &msg)
 {
-	//qDebug() << "Connection::enqueue";
-	//queueLock = true;
 	queueLock.lock();
 	if (!queue.isEmpty() && queue.last().similar(msg))
 		queue.removeLast();
 	queue.enqueue(msg);
-	//queueLock = false;
 	queueLock.unlock();
 }
-
 
 void Connection::count_t::report(void)
 {

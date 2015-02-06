@@ -13,9 +13,10 @@ Analog::Analog(Device *dev, analog_t *analog, QWidget *parent) : QWidget(parent)
 	this->dev = dev;
 	layout = new QGridLayout(this);
 	channelLayout = new QGridLayout;
-	layout->addWidget(waveform = new AnalogWaveform(this), 0, 0, -1, 1);
+	layout->addWidget(waveform = new AnalogWaveform(dev, this), 0, 0, -1, 1);
 	layout->addLayout(channelLayout, 0, 1, -1, 1);
 	rebuild(analog);
+	connect(waveform, SIGNAL(updateAt(quint32)), this, SLOT(updateAt(quint32)));
 }
 
 Analog::~Analog()
@@ -91,9 +92,25 @@ void Analog::rebuild(analog_t *analog)
 
 void Analog::initADC(void)
 {
-	stopADC();
+	//stopADC();
+	message_t msg;
+	msg.command = CMD_ANALOG;
+	msg.id = analog->id;
+	message_t::set_t set;
+	set.id = CTRL_START;				// Stop ADC
+	set.value = 0;
+	set.bytes = 1;
+	msg.settings.append(set);
+	set.id = CTRL_DATA;				// Set data format
+	set.value = analog->timebase.scanMode() ? CTRL_DATA : CTRL_FRAME;
+	set.bytes = 1;
+	msg.settings.append(set);
+	dev->send(msg);
+
 	analog->init();
+	analog->calculate();
 	analog->update();
+
 	configureTimer();
 	//startADC();
 }
@@ -167,7 +184,7 @@ void Analog::analogData(analog_t::data_t data)
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
-		if (data.data.count() != (int)analog->channelsCount()) {
+		if ((quint32)data.data.count() != analog->channelsCount()) {
 			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
 			break;
 		}
@@ -181,6 +198,15 @@ void Analog::analogData(analog_t::data_t data)
 			analog->buffer.position = 0;
 		break;
 	case CTRL_FRAME:
+		if ((quint32)data.data.count() != analog->channelsCount() * analog->buffer.sizePerChannel) {
+			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			break;
+		}
+		for (quint32 pos = 0; pos < analog->buffer.sizePerChannel; pos++)
+			for (int i = 0; i < analog->channels.count(); i++)
+				if (analog->channels.at(i).enabled)
+					analog->channels[i].buffer[pos] = data.data.at(count++);
+		analog->buffer.validSize = analog->buffer.sizePerChannel;
 		break;
 	}
 	waveform->update();

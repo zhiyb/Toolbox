@@ -3,14 +3,18 @@
 
 #include <QtWidgets>
 #include "structures.h"
+#include "device.h"
 
 class AnalogWaveform : public QOpenGLWidget, protected QOpenGLFunctions
 {
 	Q_OBJECT
 public:
-	AnalogWaveform(QWidget *parent);
+	AnalogWaveform(Device *dev, QWidget *parent);
 	~AnalogWaveform();
 	void setAnalog(analog_t *analog);
+
+signals:
+	void updateAt(quint32 sequence);
 
 protected:
 	void initializeGL();
@@ -64,6 +68,7 @@ private:
 	bool init(void);
 	void generateGrid(void);
 
+	Device *dev;
 	analog_t *analog;
 };
 

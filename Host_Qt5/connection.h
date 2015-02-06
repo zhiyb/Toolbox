@@ -65,7 +65,7 @@ public slots:
 
 private slots:
 	//void pause(void);
-	void reset(void);
+	bool reset(void);
 	void resync(void);
 	void quickResync(void);
 

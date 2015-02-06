@@ -56,17 +56,30 @@ void AnalogChannelCtrl::enabledChanged()
 	if (channel->configure.enabled == enabled->isChecked())
 		return;
 	channel->configure.enabled = enabled->isChecked();
-	analog->calculate();
+	if (!analog->calculate()) {
+		updateValue();
+		return;
+	}
 	message_t msg;
 	emit updateAt(msg.sequence);
 	msg.command = CMD_ANALOG;
 	msg.id = analog->id;
 	message_t::set_t set;
-	set.id = CTRL_SET;
+	set.id = CTRL_START;				// Stop ADC
+	set.value = 0;
+	set.bytes = 1;
+	msg.settings.append(set);
+	set.id = CTRL_SET;				// Set channel
 	set.value = analog->channelsEnabledConfigure();
 	set.bytes = analog->channelsBytes();
 	msg.settings.append(set);
-	msg.settings.append(message_t::set_t());
+	if (!analog->timebase.scanMode()) {
+		set.id = CTRL_FRAME;			// Set frame(buffer) length per channel
+		set.value = analog->buffer.configure.sizePerChannel;
+		set.bytes = 4;
+		msg.settings.append(set);
+	}
+	msg.settings.append(message_t::set_t());	// End settings
 	//qDebug(tr("AnalogChannelCtrl: message %1").arg(msg.sequence).toLocal8Bit());
 	dev->send(msg);
 }

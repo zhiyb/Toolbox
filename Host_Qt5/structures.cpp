@@ -5,8 +5,9 @@
 
 const qreal scale_t::factor[3] = {1, 2.5, 5};
 const quint32 analog_t::grid_t::preferredPointsPerGrid = 150;
-const quint32 analog_t::grid_t::minimumVerticalCount = 8;
+const quint32 analog_t::grid_t::minimumPointsPerGrid = 10;
 const quint32 analog_t::grid_t::maximumVerticalCount = 10;
+const quint32 analog_t::grid_t::minimumVerticalCount = 8;
 const QColor analog_t::channel_t::defaultColours[DEFAULT_CHANNEL_COLOURS] = {
 	Qt::red, Qt::green, Qt::blue, Qt::yellow,
 	Qt::cyan, Qt::magenta, Qt::gray, Qt::white,
@@ -37,18 +38,20 @@ bool timer_t::setFrequency(const float freq)
 	return true;
 }
 
-void scale_t::increase(void)
+bool scale_t::increase(void)
 {
 	if (divide == 1 && seq == 2)
-		return;
+		return false;
 	seq = seq == 2 ? 0 : seq + 1;
 	divide /= seq == 0 ? 10 : 1;
+	return true;
 }
 
-void scale_t::decrease(void)
+bool scale_t::decrease(void)
 {
 	 seq = seq == 0 ? 2 : seq - 1;
 	 divide *= seq == 2 ? 10 : 1;
+	 return true;
 }
 
 QString scale_t::toString(const qreal value)
@@ -99,27 +102,34 @@ void analog_t::init(void)
 bool analog_t::calculate(void)
 {
 	if (timebase.configure.scanMode()) {
-		grid.pointsPerGrid = grid.preferredPointsPerGrid;
-		if (!timer.setFrequency((float)grid.pointsPerGrid / timebase.configure.scale.value()))
+		if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value()))
 			timer.value = timer.maximum();
-		return true;
+	} else {
+		quint32 sizePerChannel = buffer.size / channelsCount();
+		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid)
+			return false;
+		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
+			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
+		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value()))
+			timer.value = timer.maximum();
+		buffer.configure.sizePerChannel = sizePerChannel;
 	}
-	return false;
+	return true;
 }
 
-bool analog_t::update(void)
+void analog_t::update(void)
 {
-	if (!calculate())
-		return false;
 	timer.update();
 	timebase.update();
 	if (timebase.scanMode())
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
+	else
+		buffer.sizePerChannel = buffer.configure.sizePerChannel;
+	grid.pointsPerGrid = timer.frequency() * timebase.scale.value();
 	buffer.position = 0;
 	buffer.validSize = 0;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);
-	return true;
 }
 
 analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)

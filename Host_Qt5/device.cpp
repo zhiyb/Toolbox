@@ -85,6 +85,7 @@ void Device::analogInfo(analog_t *s)
 		const analog_t::channel_t &channel = s->channels.at(i);
 		qDebug(tr("  Channel ID: %1, name: %2, reference: %3, offset: %4").arg(channel.id).arg(channel.name).arg(channel.reference).arg(channel.offset).toLocal8Bit());
 	}
+	qDebug(tr("  Buffer size: %1").arg(s->buffer.size).toLocal8Bit());
 	qDebug(tr("  Timer ID: %1, resolution: %2, clock frequency: %3").arg(s->timer.id).arg(s->timer.resolution).arg(s->timer.clockFrequency).toLocal8Bit());
 	emit analog(s);
 }

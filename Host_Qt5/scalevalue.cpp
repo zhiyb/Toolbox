@@ -20,11 +20,15 @@ void ScaleValue::updateValue()
 
 void ScaleValue::mousePressEvent(QMouseEvent *e)
 {
-	if (e->pos().x() < width() / 2)
-		scale->decrease();
-	else
-		scale->increase();
+	if (e->pos().x() < width() / 2) {
+		if (!scale->decrease())
+			goto ret;
+	} else {
+		if (!scale->increase())
+			goto ret;
+	}
 	updateValue();
 	emit valueChanged(scale->value());
+ret:
 	QToolButton::mousePressEvent(e);
 }
