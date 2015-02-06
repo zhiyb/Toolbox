@@ -5,6 +5,7 @@
 //#define PKG_SYNC	(uint16_t)0xAA55
 #define FW_VERSION	0
 #define INVALID_ID	__UINT8_MAX__
+#define BAUD		1500000
 
 #define CMD_NOP			'\x00'
 #define CMD_RESET		'R'
@@ -22,8 +23,8 @@
 
 #define CTRL_START	0	// 0: stop, 1: start
 #define CTRL_SET	1	// Set value to component
-#define CTRL_DATA	2	// Data
-#define CTRL_FRAME	3	// Data frame
+#define CTRL_DATA	2	// Data / Set data format
+#define CTRL_FRAME	3	// Data frame / Set frame length
 
 #define CTRL_TOGGLE	0
 #define CTRL_BYTE1	1
