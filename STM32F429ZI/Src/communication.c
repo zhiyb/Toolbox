@@ -1,4 +1,5 @@
 #include <string.h>
+#include <instructions.h>
 #include "stm32f4xx_hal.h"
 #include "communication.h"
 #include "handles.h"
@@ -67,6 +68,8 @@ void sendString(const char *string)
 
 void initUART()
 {
+	HUART->Init.BaudRate = BAUD;
+	HAL_UART_Init(HUART);
 	HAL_UART_Receive_DMA(HUART, buffer, UART_RX_BUFFER_SIZE);
 	HUART->Instance->CR3 |= USART_CR3_DMAT;
 	sendString(__DATE__ ", " __TIME__ " | Hello, world!\r\n");

@@ -6,12 +6,14 @@
 #include "communication.h"
 #include "timer.h"
 
-uint8_t adcTxBuffer[CTRL_ADC_CHANNELS * CTRL_ADC_BYTES + 3] = {CMD_ANALOGDATA, CTRL_ADC_ID, 0};
-volatile uint8_t adcTxBufferRequest = 0, adcTxBufferLength = 0;
+uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE] = {0, CMD_ANALOGDATA, CTRL_ADC_ID, 0};
+uint8_t *adcTxBuffer;
+volatile uint32_t adcTxBufferLength;
+volatile uint8_t adcTxBufferRequest = 0;
 
-uint16_t result[CTRL_ADC_CHANNELS] = {0};
-uint16_t channelEnabled = 0xFFFF;
-uint8_t channelCount = CTRL_ADC_CHANNELS;
+static uint32_t bufferCount;	// Buffered conversions count
+static uint16_t channelEnabled = 0xFFFF;
+static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
 
 uint32_t floatToRawUInt32(float x)
 {
@@ -23,16 +25,33 @@ uint32_t floatToRawUInt32(float x)
 	return u.i;
 }
 
-void startADC(void)
+static void startADC(void)
 {
 	if (!channelCount)
 		return;
-	while (HAL_ADC_Start_DMA(ADC_HW, (uint32_t *)result, channelCount) != HAL_OK);
+	if (scanMode) {
+		adcBuffer[ADC_SCAN_ALIGN_BYTES + 0] = CMD_ANALOGDATA;
+		adcBuffer[ADC_SCAN_ALIGN_BYTES + 1] = CTRL_ADC_ID;
+		adcBuffer[ADC_SCAN_ALIGN_BYTES + 2] = CTRL_DATA;
+		adcTxBufferLength = ADC_SCAN_PREPEND_BYTES + channelCount * CTRL_ADC_BYTES;
+		adcTxBuffer = adcBuffer + ADC_SCAN_ALIGN_BYTES;
+		while (HAL_ADC_Start_DMA(ADC_HW, (uint32_t *)(adcBuffer + ADC_SCAN_ALIGN_BYTES + ADC_SCAN_PREPEND_BYTES), channelCount) != HAL_OK);
+	} else {
+		adcBuffer[ADC_ALIGN_BYTES + 0] = CMD_ANALOGDATA;
+		adcBuffer[ADC_ALIGN_BYTES + 1] = CTRL_ADC_ID;
+		adcBuffer[ADC_ALIGN_BYTES + 2] = CTRL_FRAME;
+		*(uint32_t *)(adcBuffer + ADC_ALIGN_BYTES + 3) = 0;
+		adcTxBufferLength = ADC_PREPEND_BYTES + bufferCount * CTRL_ADC_BYTES;
+		adcTxBuffer = adcBuffer + ADC_ALIGN_BYTES;
+		while (HAL_ADC_Start_DMA(ADC_HW, (uint32_t *)(adcBuffer + ADC_ALIGN_BYTES + ADC_PREPEND_BYTES), bufferCount) != HAL_OK);
+		__HAL_ADC_ENABLE_IT(ADC_HW, ADC_IT_EOC);
+		__HAL_DMA_DISABLE_IT(ADC_HW->DMA_Handle, DMA_IT_TC);
+	}
 	//startTimer(ADC_TIMER);
 	HAL_TIM_OC_Start(ADC_TIMER, ADC_TIMER_CHANNEL);
 }
 
-void stopADC(void)
+static void stopADC(void)
 {
 	HAL_ADC_Stop_DMA(ADC_HW);
 	//stopTimer(ADC_TIMER);
@@ -40,13 +59,13 @@ void stopADC(void)
 	adcTxBufferRequest = 0;
 }
 
-void configureADC(void)
+static void configureADC(void)
 {
 	const static uint32_t channels[CTRL_ADC_CHANNELS] = {
 		ADC_CHANNEL_3, ADC_CHANNEL_6, ADC_CHANNEL_8, ADC_CHANNEL_9, ADC_CHANNEL_10,
 		ADC_CHANNEL_TEMPSENSOR, ADC_CHANNEL_VBAT, ADC_CHANNEL_VREFINT,
 	};
-	stopADC();
+	//stopADC();
 	//HAL_ADC_DeInit(ADC_HW);
 	channelCount = 0;
 	uint16_t mask = 0x01;
@@ -96,6 +115,14 @@ loop:
 		receiveData((uint8_t *)&channelEnabled, CTRL_ADC_CHANNELS_BYTES, -1);
 		configureADC();
 		break;
+	case CTRL_DATA:
+		scanMode = receiveChar(-1) == CTRL_DATA;
+		stopADC();
+		break;
+	case CTRL_FRAME:
+		receiveData((uint8_t *)&bufferCount, 4, -1);
+		bufferCount *= channelCount;
+		break;
 	case INVALID_ID:
 	default:
 		return;
@@ -123,19 +150,28 @@ void ctrlADCControllerGenerate(void)
 		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
 	}
 	sendValue(channelEnabled, CTRL_ADC_CHANNELS_BYTES);
+	sendValue(ADC_BUFFER_SIZE / CTRL_ADC_BYTES, 4);	// ADC conversion buffer size
 	ctrlTimerControllerGenerate(ADC_TIMER);	// ADC trigger timer information
 	sendChar(CMD_END);			// End settings
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	uint8_t i;
-	adcTxBuffer[2] = CTRL_DATA;
-	adcTxBufferLength = 3 + channelCount * 2;
-	for (i = 0; i < channelCount; i++)
-		*(uint16_t *)&adcTxBuffer[3 + i * 2] = result[i];
-	if (pause)
-		adcTxBufferRequest++;
-	else
+	if (scanMode) {
+		if (pause)
+			adcTxBufferRequest++;
+		else
+			sendData(adcTxBuffer, adcTxBufferLength);
+	} else {
+		// Frame mode, can just skip data frames
+		if (pause)
+			return;
+		// Not ready for send
+		if (ADC_HW->DMA_Handle->Instance->NDTR != bufferCount)
+			return;
+		HAL_TIM_OC_Stop(ADC_TIMER, ADC_TIMER_CHANNEL);
 		sendData(adcTxBuffer, adcTxBufferLength);
+		pollSending();
+		HAL_TIM_OC_Start(ADC_TIMER, ADC_TIMER_CHANNEL);
+	}
 }

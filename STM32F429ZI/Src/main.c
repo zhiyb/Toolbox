@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : main.c
-  * Date               : 05/02/2015 11:06:44
+  * Date               : 06/02/2015 00:25:28
   * Description        : Main program body
   ******************************************************************************
   *
@@ -186,7 +186,7 @@ void MX_ADC1_Init(void)
 	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
 	hadc1.Init.NbrOfConversion = 2;
 	hadc1.Init.DMAContinuousRequests = ENABLE;
-	hadc1.Init.EOCSelection = EOC_SINGLE_CONV;
+	hadc1.Init.EOCSelection = EOC_SEQ_CONV;
 	HAL_ADC_Init(&hadc1);
 
 	/**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
@@ -237,7 +237,7 @@ void MX_TIM2_Init(void)
 	htim2.Instance = TIM2;
 	htim2.Init.Prescaler = 0;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim2.Init.Period = 90000000;
+	htim2.Init.Period = 9000;
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	HAL_TIM_Base_Init(&htim2);
 
@@ -251,7 +251,7 @@ void MX_TIM2_Init(void)
 	HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig);
 
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 30000000;
+	sConfigOC.Pulse = 3000;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
 	HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3);
@@ -283,7 +283,7 @@ void MX_TIM5_Init(void)
 	HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig);
 
 	sConfigOC.OCMode = TIM_OCMODE_PWM1;
-	sConfigOC.Pulse = 100;
+	sConfigOC.Pulse = 10;
 	sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
 	sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
 	HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_1);
@@ -316,11 +316,11 @@ void MX_DMA_Init(void)
 	__DMA1_CLK_ENABLE();
 
 	/* DMA interrupt init */
-	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 0, 0);
+	HAL_NVIC_SetPriority(DMA1_Stream0_IRQn, 1, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Stream0_IRQn);
-	HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0);
+	HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 1, 0);
 	HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
-	HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 1, 0);
+	HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 2, 0);
 	HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
 
 }

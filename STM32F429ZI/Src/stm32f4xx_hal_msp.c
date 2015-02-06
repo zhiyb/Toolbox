@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : stm32f4xx_hal_msp.c
-  * Date               : 05/02/2015 11:06:43
+  * Date               : 06/02/2015 00:25:27
   * Description        : This file provides code for the MSP Initialization 
   *                      and de-Initialization codes.
   ******************************************************************************
@@ -58,7 +58,7 @@ void HAL_MspInit(void)
 
   /* System interrupt init*/
 /* SysTick_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(SysTick_IRQn, 6, 0);
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 
   /* USER CODE BEGIN MspInit 1 */
 
@@ -115,6 +115,9 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* hadc)
 
     __HAL_LINKDMA(hadc,DMA_Handle,hdma_adc1);
 
+  /* System interrupt init*/
+    HAL_NVIC_SetPriority(ADC_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(ADC_IRQn);
   /* USER CODE BEGIN ADC1_MspInit 1 */
 
   /* USER CODE END ADC1_MspInit 1 */
@@ -148,6 +151,10 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* hadc)
 
     /* Peripheral DMA DeInit*/
     HAL_DMA_DeInit(hadc->DMA_Handle);
+
+    /* Peripheral interrupt DeInit*/
+    HAL_NVIC_DisableIRQ(ADC_IRQn);
+
   /* USER CODE BEGIN ADC1_MspDeInit 1 */
 
   /* USER CODE END ADC1_MspDeInit 1 */
@@ -224,8 +231,8 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
     */
     GPIO_InitStruct.Pin = GPIO_PIN_10;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_LOW;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 

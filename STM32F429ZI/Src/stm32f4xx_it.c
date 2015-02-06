@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file    stm32f4xx_it.c
-  * @date    05/02/2015 11:06:42
+  * @date    06/02/2015 00:25:26
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
@@ -41,6 +41,7 @@
 /* External variables --------------------------------------------------------*/
 
 extern DMA_HandleTypeDef hdma_adc1;
+extern ADC_HandleTypeDef hadc1;
 extern DMA_HandleTypeDef hdma_uart8_tx;
 extern DMA_HandleTypeDef hdma_uart8_rx;
 
@@ -103,6 +104,22 @@ void DMA2_Stream0_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
   /* USER CODE END DMA2_Stream0_IRQn 1 */
+}
+
+/**
+* @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
+*/
+void ADC_IRQHandler(void)
+{
+  /* USER CODE BEGIN ADC_IRQn 0 */
+	if (__HAL_ADC_GET_IT_SOURCE(&hadc1, ADC_IT_EOC))
+		HAL_ADC_ConvCpltCallback(&hadc1);
+	return;
+  /* USER CODE END ADC_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC_IRQn 1 */
+
+  /* USER CODE END ADC_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

@@ -13,8 +13,18 @@
 #define CTRL_ADC_REF		3.3f
 #define CTRL_ADC_OFFSET		0.f
 
-extern uint8_t adcTxBuffer[CTRL_ADC_CHANNELS * CTRL_ADC_BYTES + 3];
-extern volatile uint8_t adcTxBufferRequest, adcTxBufferLength;
+#define ADC_BUFFER_SIZE		(160 * 1024)
+// Frame mode:	Align, CMD, ID, Data start position, Data
+#define ADC_ALIGN_BYTES		1
+#define ADC_PREPEND_BYTES	7
+// Scan mode:	Align, CMD, ID, Data
+#define ADC_SCAN_ALIGN_BYTES	1
+#define ADC_SCAN_PREPEND_BYTES	3
+
+extern uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
+extern uint8_t *adcTxBuffer;
+extern volatile uint32_t adcTxBufferLength;
+extern volatile uint8_t adcTxBufferRequest;
 
 void initADC(void);
 void resetADC(void);

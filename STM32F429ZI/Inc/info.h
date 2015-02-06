@@ -9,6 +9,5 @@
 #define APB1_TIMER_CLK	(APB1_CLK * 2)
 #define APB2_CLK	(SYS_CLK / 2)
 #define APB2_TIMER_CLK	(APB2_CLK * 2)
-#define BAUD		1500000
 
 #endif // INFO_H
