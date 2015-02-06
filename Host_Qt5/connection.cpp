@@ -422,6 +422,7 @@ analog_t *Connection::readAnalog(void)
 	analog->name = readString();
 	analog->resolution = readChar();
 	analog->scanFrequency = readValue(4);
+	analog->maxFrequency = readValue(4);
 	quint8 channels = readChar();
 	for (quint8 i = 0; i < channels; i++) {
 		analog_t::channel_t channel;

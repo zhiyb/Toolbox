@@ -96,13 +96,14 @@ struct analog_t : public info_t, public resolution_t {
 	bool calculate(void);
 	void update(void);
 	qreal gridTotalTime(void) {return timebase.scale.value() * (float)grid.count.width();}
+	qreal gridTotalTimeConfigure(void) {return timebase.configure.scale.value() * (float)grid.count.width();}
 	quint32 channelsCount(void) const;
 	void setChannelsEnabled(quint32 enabled);
 	quint32 channelsEnabledConfigure(void) const;
 	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
 
 	QString name;
-	quint32 scanFrequency;
+	quint32 scanFrequency, maxFrequency;
 	struct channel_t {
 		channel_t(void);
 		void update(const int bufferSize);
@@ -125,10 +126,6 @@ struct analog_t : public info_t, public resolution_t {
 	};
 	QVector<channel_t> channels;
 	timer_t timer;
-
-	/*struct configure_t {
-		;
-	} configure;*/
 
 	struct buffer_t {
 		// Device information

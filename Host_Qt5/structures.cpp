@@ -32,7 +32,9 @@ bool timer_t::setFrequency(const float freq)
 {
 	quint32 value = clockFrequency / freq;
 	//qDebug(QObject::tr("Timer set frequency: %1, clock frequency: %2, value: %3, maximum: %4").arg(freq).arg(clockFrequency).arg(value).arg(maximum()).toLocal8Bit());
-	if (value == 0 || value > maximum())
+	if (value == 0)
+		value++;
+	if (value > maximum())
 		return false;
 	configure.value = value;
 	return true;
@@ -103,7 +105,7 @@ bool analog_t::calculate(void)
 {
 	if (timebase.configure.scanMode()) {
 		if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value()))
-			timer.value = timer.maximum();
+			timer.configure.value = timer.maximum();
 	} else {
 		quint32 sizePerChannel = buffer.size / channelsCount();
 		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid)
@@ -111,7 +113,14 @@ bool analog_t::calculate(void)
 		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
 			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
 		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value()))
-			timer.value = timer.maximum();
+			timer.configure.value = timer.maximum();
+		if (timer.frequencyConfigure() >= maxFrequency) {
+			timer.setFrequency(maxFrequency);
+			timer.configure.value++;
+			sizePerChannel = gridTotalTimeConfigure() * timer.frequencyConfigure();
+			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid)
+				return false;
+		}
 		buffer.configure.sizePerChannel = sizePerChannel;
 	}
 	return true;
