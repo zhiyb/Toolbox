@@ -28,7 +28,7 @@ bool message_t::similar(const message_t &msg) const
 	return true;
 }
 
-bool timer_t::setFrequency(const float freq)
+bool hwtimer_t::setFrequency(const float freq)
 {
 	quint32 value = clockFrequency / freq;
 	//qDebug(QObject::tr("Timer set frequency: %1, clock frequency: %2, value: %3, maximum: %4").arg(freq).arg(clockFrequency).arg(value).arg(maximum()).toLocal8Bit());

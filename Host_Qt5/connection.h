@@ -74,7 +74,7 @@ private:
 	info_t *findInfo(const quint8 type, const quint8 id);
 	device_t readDeviceInfo(void);
 	controller_t *readController(void);
-	timer_t readTimer(void);
+	hwtimer_t readTimer(void);
 	analog_t *readAnalog(void);
 	analog_t::data_t readAnalogData(void);
 	void write(QByteArray &data);

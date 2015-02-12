@@ -62,7 +62,7 @@ struct resolution_t {
 	quint8 resolution;
 };
 
-struct timer_t : public info_t, public resolution_t {
+struct hwtimer_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_TIMER;}
 
 	bool setFrequency(const float freq);
@@ -125,7 +125,7 @@ struct analog_t : public info_t, public resolution_t {
 		QVector<quint32> buffer;
 	};
 	QVector<channel_t> channels;
-	timer_t timer;
+	hwtimer_t timer;
 
 	struct buffer_t {
 		// Device information

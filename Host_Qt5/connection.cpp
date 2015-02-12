@@ -300,7 +300,7 @@ send:
 	writeChar(msg.command);
 	waitForWrite();
 	int count = 10;
-	char c;
+	char c = 0;
 	while ((count == -1 || count--) && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
 		quickResync();
@@ -393,9 +393,9 @@ controller_t* Connection::readController(void)
 	return ctrl;
 }
 
-timer_t Connection::readTimer(void)
+hwtimer_t Connection::readTimer(void)
 {
-	timer_t timer;
+	hwtimer_t timer;
 	if (readChar() != CMD_TIMER) {
 		emit error(tr("Invalid timer command"));
 		return timer;
