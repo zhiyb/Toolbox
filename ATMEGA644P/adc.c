@@ -11,7 +11,7 @@ const static PROGMEM char ch0[] = "CH_0";
 const static PROGMEM char ch2[] = "CH_2";
 const static PROGMEM char ch4[] = "CH_4";
 const static PROGMEM char ch6[] = "CH_6";
-const static PGM_P channel_name[] = {ch0, ch2, ch4, ch6};
+const static PROGMEM PGM_P const channelName[] = {ch0, ch2, ch4, ch6};
 const static PROGMEM uint8_t channels[] = {0, 2, 4, 6};
 
 static uint8_t channelSequence[CTRL_ADC_CHANNELS + 1];
@@ -149,7 +149,7 @@ void ctrlADCControllerGenerate(void)
 	uint8_t i;
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
 		sendChar(i << 1);		// Channel ID
-		sendString_P(channel_name[i]);	// Channel name
+		sendString_P((PGM_P)pgm_read_word(channelName + i));
 		sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
 		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
 	}

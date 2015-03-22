@@ -10,12 +10,20 @@
 // In <avr/cpufunc.h>, but WinAVR doesn't have the file
 #define _NOP() __asm__ __volatile__("nop")
 
-static volatile uint8_t dac_data;
+const static PROGMEM char ch0[] = "Channel 0";
+const static PROGMEM char ch1[] = "Channel 1";
+const static PROGMEM char ch2[] = "Channel 2";
+const static PROGMEM char ch3[] = "Channel 3";
+const static PROGMEM PGM_P const channelName[] = {ch0, ch1, ch2, ch3};
+
+static volatile uint8_t dacReady;
+static uint8_t dac_data;
+static uint8_t dacData[CTRL_DAC_CHANNELS];
+
+static inline void setDAC(uint8_t ch, uint8_t data);
 
 void initDAC(void)
 {
-	dac_data = 0;
-
 	// Port initialisation
 	DDRD |= DAC_LOAD | DAC_DATA | DAC_CLK;
 	PORTD |= DAC_LOAD | DAC_DATA | DAC_CLK;
@@ -30,20 +38,25 @@ void initDAC(void)
 	UBRR1L = F_CPU / 1000000 / 2 - 1;
 	// Clear transmit complete flag
 	UCSR1A |= _BV(TXC1);
+	
+	register uint8_t i, *p = dacData;
+	dacReady = 1;
+	for (i = 0; i < CTRL_DAC_CHANNELS; i++) {
+		*p = 0;
+		setDAC(i, 0);
+	}
+	dac_data = 0;
 }
 
 static inline void setDAC(uint8_t ch, uint8_t data)
 {
+	while (!dacReady);
 	UDR1 = (ch << 1) + 1;	// RNG = 1 for gain of 2x from ref
-	dac_data = data;
+	dacData[ch] = dac_data = data;
 	// Enable data register empty interrupt
 	UCSR1B |= _BV(UDRE1);
+	dacReady = 0;
 	return;
-}
-
-static inline uint8_t getDAC(void)
-{
-	return dac_data;
 }
 
 // USART1 Data register empty interrupt
@@ -63,6 +76,7 @@ ISR(USART1_TX_vect, ISR_NOBLOCK)
 	//_NOP();		// tW(LOAD) min. 250ns
 	// Disable transmit complete interrupt
 	UCSR1B &= ~_BV(TXC1);
+	dacReady++;
 	PORTD |= DAC_LOAD;
 }
 
@@ -72,21 +86,12 @@ void ctrlDACControllerGenerate(void)
 	sendChar(CTRL_DAC_ID);
 	sendString_P(PSTR("DAC TLV5620"));
 
-	sendChar(0);
-	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
-	sendString_P(PSTR("Channel 0"));
-
-	sendChar(1);
-	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
-	sendString_P(PSTR("Channel 1"));
-
-	sendChar(2);
-	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
-	sendString_P(PSTR("Channel 2"));
-
-	sendChar(3);
-	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
-	sendString_P(PSTR("Channel 3"));
+	uint8_t i;
+	for (i = 0; i < CTRL_DAC_CHANNELS; i++) {
+		sendChar(i);
+		ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, dacData[i]);
+		sendString_P((PGM_P)pgm_read_word(channelName + i));
+	}
 	sendChar(INVALID_ID);
 }
 

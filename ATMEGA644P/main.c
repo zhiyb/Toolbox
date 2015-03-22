@@ -10,6 +10,7 @@ void init(void)
 {
 	DDRB |= _BV(7);
 	PORTB |= _BV(7);
+	sei();
 	initUART();
 	initTimer0();
 	initADC();
@@ -24,7 +25,6 @@ void reset(void)
 int main(void)
 {
 	init();
-	sei();
 
 	for (;;)
 		ctrlRootLoop();
