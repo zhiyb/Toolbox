@@ -10,6 +10,7 @@ Analog::Analog(Device *dev, analog_t *analog, QWidget *parent) : QWidget(parent)
 	//setObjectName(QString::number(analog.id));
 	trigger = 0;
 	timebase = 0;
+	updateSequence = 0;
 	this->dev = dev;
 	layout = new QGridLayout(this);
 	channelLayout = new QGridLayout;
@@ -40,6 +41,7 @@ bool Analog::event(QEvent *e)
 
 void Analog::showEvent(QShowEvent *e)
 {
+	resize(size());
 	startADC();
 	QWidget::showEvent(e);
 }

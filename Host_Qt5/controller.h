@@ -25,7 +25,7 @@ private slots:
 private:
 	void valueChanged(quint8 id);
 
-	QVBoxLayout *layout;
+	QHBoxLayout *layout;
 	controller_t *ctrl;
 };
 

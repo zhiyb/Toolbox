@@ -128,6 +128,7 @@ bool analog_t::calculate(void)
 
 void analog_t::update(void)
 {
+	qDebug() << "[DEBUG] Analog update";
 	timer.update();
 	timebase.update();
 	if (timebase.scanMode())

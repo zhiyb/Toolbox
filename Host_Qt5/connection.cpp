@@ -473,7 +473,6 @@ analog_t::data_t Connection::readAnalogData(void)
 
 char Connection::readData(int msec)
 {
-	static quint32 cnt = 0;
 	quint8 c = readChar(msec);
 	switch (c) {
 	case CMD_ACK:
@@ -495,8 +494,7 @@ char Connection::readData(int msec)
 	case ((quint8)-1):
 		return -1;
 	default:
-		if (!(cnt++ % 1000))
-			qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
 	count.rxPackage++;

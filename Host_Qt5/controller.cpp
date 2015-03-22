@@ -4,8 +4,7 @@
 
 Controller::Controller(controller_t *s, QWidget *parent) : QGroupBox(parent)
 {
-	layout = new QVBoxLayout(this);
-	setLayout(layout);
+	setLayout(layout = new QHBoxLayout(this));
 	rebuild(s);
 }
 
@@ -66,7 +65,7 @@ void Controller::valueChanged(void)
 				}
 			}
 			if (set.value != current)
-				l->setText(tr("%1:\t%2").arg(set.name).arg(set.value));
+				l->setText(tr("%1: %2").arg(set.name).arg(set.value));
 		}
 		}
 	}
@@ -79,16 +78,27 @@ void Controller::rebuild(controller_t *s)
 	ctrl = s;
 	setObjectName(QString::number(ctrl->id));
 	setTitle(ctrl->name);
+	QVBoxLayout *lay = new QVBoxLayout;
+	layout->addLayout(lay);
 	for (int i = 0; i < ctrl->controls.count(); i++) {
 		struct controller_t::set_t set = ctrl->controls.at(i);
 		switch (set.type & ~CTRL_READONLY) {
+		case CTRL_NEW_COLUMN: {
+			QFrame *f = new QFrame;
+			f->setFrameShape(QFrame::VLine);
+			f->setLineWidth(0);
+			f->setMidLineWidth(0);
+			layout->addWidget(f);
+			layout->addLayout(lay = new QVBoxLayout);
+			break;
+		}
 		case CTRL_BYTE1:
 		case CTRL_BYTE2:
 		case CTRL_BYTE3:
 		case CTRL_BYTE4: {
-			QLabel *l = new QLabel(tr("%1:\t%2").arg(set.name).arg(set.value));
+			QLabel *l = new QLabel(tr("%1: %2").arg(set.name).arg(set.value));
 			l->setObjectName(QString::number(set.id));
-			layout->addWidget(l, 0, Qt::AlignHCenter);
+			lay->addWidget(l, 0, Qt::AlignHCenter);
 			if (!set.readOnly()) {
 				QSlider *s = new QSlider(Qt::Vertical);
 				s->setObjectName(QString::number(set.id));
@@ -97,10 +107,11 @@ void Controller::rebuild(controller_t *s)
 				s->setValue(set.value);
 				s->setMaximumHeight(QWIDGETSIZE_MAX);
 				connect(s, SIGNAL(valueChanged(int)), this, SLOT(valueChanged()));
-				layout->addWidget(s, 0, Qt::AlignHCenter);
+				lay->addWidget(s, 0, Qt::AlignHCenter);
 			}
 			break;
 		}
 		}
 	}
+	valueChanged();
 }
