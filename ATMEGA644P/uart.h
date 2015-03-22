@@ -19,5 +19,6 @@ void sendChar(char c);
 void sendData(uint8_t *buffer, uint32_t length);
 void sendValue(uint32_t value, uint8_t bytes);
 void sendString(const char *string);
+void sendString_P(const char *string);
 
 #endif

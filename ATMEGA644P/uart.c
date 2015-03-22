@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <instructions.h>
 #include <string.h>
 #include "uart.h"
@@ -84,5 +85,16 @@ void sendValue(uint32_t value, uint8_t bytes)
 
 void sendString(const char *string)
 {
-	sendData((uint8_t *)string, strlen(string) + 1);
+	char c;
+	do
+		sendChar(c = *string++);
+	while (c != '\0');
+}
+
+void sendString_P(const char *string)
+{
+	char c;
+	do
+		sendChar(c = pgm_read_byte(string++));
+	while (c != '\0');
 }

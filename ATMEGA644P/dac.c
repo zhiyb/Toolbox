@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <util/delay.h>
 #include <instructions.h>
 #include "dac.h"
@@ -69,10 +70,23 @@ void ctrlDACControllerGenerate(void)
 {
 	sendChar(CMD_CONTROLLER);
 	sendChar(CTRL_DAC_ID);
-	sendString("DAC Channel 0");
+	sendString_P(PSTR("DAC TLV5620"));
+
 	sendChar(0);
 	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
-	sendString("Value");
+	sendString_P(PSTR("Channel 0"));
+
+	sendChar(1);
+	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
+	sendString_P(PSTR("Channel 1"));
+
+	sendChar(2);
+	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
+	sendString_P(PSTR("Channel 2"));
+
+	sendChar(3);
+	ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, getDAC());
+	sendString_P(PSTR("Channel 3"));
 	sendChar(INVALID_ID);
 }
 

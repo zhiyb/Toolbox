@@ -7,7 +7,7 @@
 #include "adc.h"
 #include "dac.h"
 
-volatile uint8_t pause;
+volatile uint8_t pause = 1;
 
 void ctrlByteType(uint8_t type, uint32_t min, uint32_t max, uint32_t value)
 {

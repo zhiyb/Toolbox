@@ -1,20 +1,33 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
 #include <instructions.h>
 #include "timer0.h"
 #include "ctrl.h"
 #include "uart.h"
 #include "adc.h"
 
-uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
-uint8_t *adcTxBuffer;
-uint8_t *adcBufferStart, *adcBufferCurrent, *adcBufferEnd;
-volatile uint16_t adcTxBufferLength;
-volatile uint8_t adcTxBufferRequest;
+const static PROGMEM char ch0[] = "CH_0";
+const static PROGMEM char ch2[] = "CH_2";
+const static PROGMEM char ch4[] = "CH_4";
+const static PROGMEM char ch6[] = "CH_6";
+const static PGM_P channel_name[] = {ch0, ch2, ch4, ch6};
+const static PROGMEM uint8_t channels[] = {0, 2, 4, 6};
+
+static uint8_t channelSequence[CTRL_ADC_CHANNELS + 1];
+static uint8_t *chSeqCurrent;
+
+static uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
+static uint8_t *adcTxBuffer;
+static uint8_t *adcBufferStart, *adcBufferCurrent, *adcBufferEnd;
+static volatile uint16_t adcTxBufferLength;
+static volatile uint8_t adcTxBufferRequest;
 
 static uint32_t adcBufferCount;	// Buffered conversions count
 static uint8_t channelEnabled = 0xFF;
 static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
+
+static void configureADC(void);
 
 static uint32_t floatToRawUInt32(float x)
 {
@@ -28,19 +41,23 @@ static uint32_t floatToRawUInt32(float x)
 
 void initADC(void)
 {
+	// Initialise data structure
+	configureADC();
+
 	ADMUX = _BV(ADLAR) | 0;
 	// Prescaler 64
 	ADCSRA = _BV(ADATE) | _BV(ADIF) | _BV(ADIE) | 3;
 	ADCSRB = _BV(ADTS1) | _BV(ADTS0);
 	DIDR0 |= _BV(ADC0D);
-	ADCSRA |= _BV(ADEN) | _BV(ADSC);
+	ADCSRA |= _BV(ADEN);
 }
 
 void resetADC(void)
 {
+	adcTxBufferRequest = 0;
 }
 
-void startADC(void)
+static void startADC(void)
 {
 	if (!channelCount)
 		return;
@@ -67,15 +84,27 @@ void startADC(void)
 	TIFR0 |= _BV(OCF0A);
 }
 
-void stopADC(void)
+static void stopADC(void)
 {
 	PORTB &= ~_BV(7);
 	stopTimer0();
 }
 
-void configureADC(void)
+static void configureADC(void)
 {
-	stopADC();
+	//stopADC();
+	uint8_t mask = 0x01, i;
+	channelCount = 0;
+	chSeqCurrent = channelSequence;
+	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
+		if (channelEnabled & mask) {
+			*chSeqCurrent++ = pgm_read_byte(channels + i);
+			channelCount++;
+		}
+		mask <<= 1;
+	}
+	*chSeqCurrent = INVALID_ID;
+	chSeqCurrent = channelSequence;
 }
 
 void ctrlADCController(const uint8_t id)
@@ -110,20 +139,17 @@ loop:
 
 void ctrlADCControllerGenerate(void)
 {
-	const static char* channels[CTRL_ADC_CHANNELS] = {
-		"CH_1",
-	};
 	sendChar(CMD_ANALOG);		// Analog waveform (ADC) customised controller
 	sendChar(CTRL_ADC_ID);			// ID
-	sendString("ADC");			// Name
+	sendString_P(PSTR("ADC"));		// Name
 	sendChar(CTRL_ADC_RESOLUTION);		// Result resolution (bits)
 	sendValue(CTRL_ADC_SCAN_FREQUENCY, 4);	// Scan mode maximum transfer frequency
 	sendValue(CTRL_ADC_MAX_FREQUENCY, 4);	// Maximum sampling frequency
 	sendChar(CTRL_ADC_CHANNELS);		// Channels
 	uint8_t i;
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
-		sendChar(i);			// Channel ID
-		sendString(channels[i]);	// Channel name
+		sendChar(i << 1);		// Channel ID
+		sendString_P(channel_name[i]);	// Channel name
 		sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
 		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
 	}
@@ -139,6 +165,15 @@ ISR(ADC_vect, ISR_NOBLOCK)
 	*adcBufferCurrent++ = ADCH;
 	if (adcBufferCurrent == adcBufferEnd)
 		adcBufferCurrent = adcBufferStart;
+	if (*++chSeqCurrent != INVALID_ID) {
+		// Change ADC channel
+		ADMUX = _BV(ADLAR) | *chSeqCurrent;
+		ADCSRA |= _BV(ADSC);
+		return;
+	}
+	adcBufferCurrent = adcBufferStart;
+	chSeqCurrent = channelSequence;
+	ADMUX = _BV(ADLAR) | *chSeqCurrent;
 
 	if (scanMode) {
 		if (pause)
