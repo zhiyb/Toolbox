@@ -20,7 +20,7 @@ static volatile uint8_t dacReady;
 static uint8_t dac_data;
 static uint8_t dacData[CTRL_DAC_CHANNELS];
 
-static inline void setDAC(uint8_t ch, uint8_t data);
+static void setDAC(uint8_t ch, uint8_t data);
 
 void initDAC(void)
 {
@@ -39,24 +39,20 @@ void initDAC(void)
 	// Clear transmit complete flag
 	UCSR1A |= _BV(TXC1);
 	
-	register uint8_t i, *p = dacData;
 	dacReady = 1;
-	for (i = 0; i < CTRL_DAC_CHANNELS; i++) {
-		*p = 0;
+	uint8_t i;
+	for (i = 0; i < CTRL_DAC_CHANNELS; i++)
 		setDAC(i, 0);
-	}
-	dac_data = 0;
 }
 
-static inline void setDAC(uint8_t ch, uint8_t data)
+static void setDAC(uint8_t ch, uint8_t data)
 {
 	while (!dacReady);
 	UDR1 = (ch << 1) + 1;	// RNG = 1 for gain of 2x from ref
-	dacData[ch] = dac_data = data;
-	// Enable data register empty interrupt
-	UCSR1B |= _BV(UDRE1);
 	dacReady = 0;
-	return;
+	dac_data = dacData[ch] = data;
+	// Enable data register empty interrupt
+	UCSR1B |= _BV(UDRIE1);
 }
 
 // USART1 Data register empty interrupt
@@ -64,18 +60,19 @@ ISR(USART1_UDRE_vect)
 {
 	UDR1 = dac_data;
 	// Disable data register empty interrupt
-	UCSR1B &= ~_BV(UDRE1);
+	UCSR1B &= ~_BV(UDRIE1);
 	// Enable transmit complete interrupt
-	UCSR1B |= _BV(TXC1);
+	UCSR1A |= _BV(TXC1);
+	UCSR1B |= _BV(TXCIE1);
 }
 
 // USART1 Transmit complete interrupt
-ISR(USART1_TX_vect, ISR_NOBLOCK)
+ISR(USART1_TX_vect)
 {
 	PORTD &= ~DAC_LOAD;	// Lowing DAC_LOAD to load
 	//_NOP();		// tW(LOAD) min. 250ns
 	// Disable transmit complete interrupt
-	UCSR1B &= ~_BV(TXC1);
+	UCSR1B &= ~_BV(TXCIE1);
 	dacReady++;
 	PORTD |= DAC_LOAD;
 }
@@ -91,6 +88,12 @@ void ctrlDACControllerGenerate(void)
 		sendChar(i);
 		ctrlByteType(CTRL_DAC_VALUE_TYPE, CTRL_DAC_VALUE_MIN, CTRL_DAC_VALUE_MAX, dacData[i]);
 		sendString_P((PGM_P)pgm_read_word(channelName + i));
+
+		// New column
+		if (i != CTRL_DAC_CHANNELS - 1) {
+			sendChar(i);
+			sendChar(CTRL_NEW_COLUMN);
+		}
 	}
 	sendChar(INVALID_ID);
 }
