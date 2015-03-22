@@ -36,6 +36,7 @@
 #define CTRL_CHECKBOX	7
 #define CTRL_SELECTOR	8
 #define CTRL_SELECTED	9
+#define CTRL_NEW_COLUMN	10
 #define CTRL_READONLY	0x80
 
 #endif
