@@ -4,6 +4,9 @@
 #define UART0_TX	_BV(1)
 #define UART0_RX	_BV(0)
 
+// RX buffer only
+#define UART_BUFFER_SIZE	32
+
 #include <inttypes.h>
 
 void initUART(void);

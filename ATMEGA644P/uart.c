@@ -4,10 +4,17 @@
 #include <string.h>
 #include "uart.h"
 
-static volatile uint8_t cnt, data;
+static struct rxBuffer_t {
+	uint8_t *read;
+	uint8_t * volatile write;
+	uint8_t buffer[UART_BUFFER_SIZE];
+} rx;
 
 void initUART(void)
 {
+	// Initialise data structure
+	rx.write = rx.read = rx.buffer;
+
 	// Initialise UART0_TX
 	#include <util/setbaud.h>
 	UBRR0H = UBRRH_VALUE;
@@ -29,10 +36,24 @@ void pollSending(void)
 	while (!(UCSR0A & _BV(TXC0)));
 }
 
+ISR(USART0_RX_vect)
+{
+	uint8_t *ptr = rx.write;
+	*ptr = UDR0;
+	if (ptr == rx.buffer + UART_BUFFER_SIZE - 1)
+		rx.write = rx.buffer;
+	else
+		rx.write = ptr + 1;
+}
+
 int receiveChar(void)
 {
-	while (!cnt);
-	cnt = 0;
+	while (rx.read == rx.write);
+	uint8_t data = *rx.read;
+	if (rx.read == rx.buffer + UART_BUFFER_SIZE - 1)
+		rx.read = rx.buffer;
+	else
+		rx.read++;
 	return data;
 }
 
@@ -48,12 +69,6 @@ void sendChar(char c)
 {
 	while (!(UCSR0A & _BV(UDRE0)));
 	UDR0 = c;
-}
-
-ISR(USART0_RX_vect)
-{
-	data = UDR0;
-	cnt++;
 }
 
 void sendData(uint8_t *buffer, uint32_t length)

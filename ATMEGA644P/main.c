@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "ctrl.h"
 #include "adc.h"
+#include "dac.h"
 
 void init(void)
 {
@@ -12,6 +13,7 @@ void init(void)
 	initUART();
 	initTimer0();
 	initADC();
+	initDAC();
 }
 
 void reset(void)
