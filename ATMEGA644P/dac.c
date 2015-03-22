@@ -37,7 +37,7 @@ void initDAC(void)
 	// Clock frequency max. 1MHz
 	UBRR1L = F_CPU / 1000000 / 2 - 1;
 	// Clear transmit complete flag
-	UCSR1A |= _BV(TXC1);
+	//UCSR1A |= _BV(TXC1);
 	
 	dacReady = 1;
 	uint8_t i;
@@ -51,6 +51,12 @@ static void setDAC(uint8_t ch, uint8_t data)
 	UDR1 = (ch << 1) + 1;	// RNG = 1 for gain of 2x from ref
 	dacReady = 0;
 	dac_data = dacData[ch] = data;
+
+	/*while (!(UCSR1A & _BV(UDRE1)));
+	UDR1 = data;
+	UCSR1A |= _BV(TXC1);
+	UCSR1B |= _BV(TXCIE1);*/
+
 	// Enable data register empty interrupt
 	UCSR1B |= _BV(UDRIE1);
 }
@@ -59,21 +65,19 @@ static void setDAC(uint8_t ch, uint8_t data)
 ISR(USART1_UDRE_vect)
 {
 	UDR1 = dac_data;
-	// Disable data register empty interrupt
-	UCSR1B &= ~_BV(UDRIE1);
-	// Enable transmit complete interrupt
 	UCSR1A |= _BV(TXC1);
-	UCSR1B |= _BV(TXCIE1);
+	// Enable transmit complete, disable data register empty
+	UCSR1B = (UCSR1B & ~_BV(UDRIE1)) | _BV(TXCIE1);
 }
 
 // USART1 Transmit complete interrupt
-ISR(USART1_TX_vect)
+ISR(USART1_TX_vect, ISR_NOBLOCK)
 {
 	PORTD &= ~DAC_LOAD;	// Lowing DAC_LOAD to load
 	//_NOP();		// tW(LOAD) min. 250ns
 	// Disable transmit complete interrupt
 	UCSR1B &= ~_BV(TXCIE1);
-	dacReady++;
+	dacReady = 1;
 	PORTD |= DAC_LOAD;
 }
 
@@ -106,6 +110,6 @@ loop:
 		return;
 	uint8_t value;
 	receiveData((uint8_t *)&value, CTRL_DAC_VALUE_BYTES);
-	setDAC(channel, value);
+	setDAC(channel % CTRL_DAC_CHANNELS, value);
 	goto loop;
 }

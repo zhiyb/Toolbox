@@ -32,7 +32,7 @@ void initUART(void)
 	UCSR0B |= _BV(RXCIE0);
 }
 
-void pollSending(void)
+void poolSending(void)
 {
 	while (!(UCSR0A & _BV(TXC0)));
 }
@@ -41,20 +41,14 @@ ISR(USART0_RX_vect)
 {
 	uint8_t *ptr = rx.write;
 	*ptr = UDR0;
-	if (ptr == rx.buffer + UART_BUFFER_SIZE - 1)
-		rx.write = rx.buffer;
-	else
-		rx.write = ptr + 1;
+	rx.write = ptr == rx.buffer + UART_BUFFER_SIZE - 1 ? rx.buffer : ptr + 1;
 }
 
 int receiveChar(void)
 {
 	while (rx.read == rx.write);
 	uint8_t data = *rx.read;
-	if (rx.read == rx.buffer + UART_BUFFER_SIZE - 1)
-		rx.read = rx.buffer;
-	else
-		rx.read++;
+	rx.read = rx.read == rx.buffer + UART_BUFFER_SIZE - 1 ? rx.buffer : rx.read + 1;
 	return data;
 }
 

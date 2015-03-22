@@ -20,7 +20,7 @@ static uint8_t *chSeqCurrent;
 static uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
 static uint8_t *adcTxBuffer;
 static uint8_t *adcBufferStart, *adcBufferCurrent, *adcBufferEnd;
-static volatile uint16_t adcTxBufferLength;
+static uint16_t adcTxBufferLength;
 static volatile uint8_t adcTxBufferRequest;
 
 static uint32_t adcBufferCount;	// Buffered conversions count
@@ -57,6 +57,12 @@ void resetADC(void)
 	adcTxBufferRequest = 0;
 }
 
+static inline void resumeADC(void)
+{
+	TIFR0 |= _BV(OCF0A);
+	startTimer0();
+}
+
 static void startADC(void)
 {
 	if (!channelCount)
@@ -79,15 +85,17 @@ static void startADC(void)
 		adcBufferCurrent = adcBufferStart = adcTxBuffer + ADC_PREPEND_BYTES;
 		adcBufferEnd = adcBufferStart + adcBufferCount * CTRL_ADC_BYTES;
 	}
-	PORTB |= _BV(7);
-	startTimer0();
-	TIFR0 |= _BV(OCF0A);
+	resumeADC();
 }
 
-static void stopADC(void)
+static inline void pauseADC(void)
 {
-	PORTB &= ~_BV(7);
 	stopTimer0();
+}
+
+static inline void stopADC(void)
+{
+	pauseADC();
 }
 
 static void configureADC(void)
@@ -162,16 +170,18 @@ void ctrlADCControllerGenerate(void)
 ISR(ADC_vect, ISR_NOBLOCK)
 {
 	TIFR0 |= _BV(OCF0A);
-	*adcBufferCurrent++ = ADCH;
-	if (adcBufferCurrent == adcBufferEnd)
-		adcBufferCurrent = adcBufferStart;
-	if (*++chSeqCurrent != INVALID_ID) {
+	*adcBufferCurrent = ADCH;
+	adcBufferCurrent = adcBufferCurrent == adcBufferEnd - 1 ? adcBufferStart : adcBufferCurrent + 1;
+
+	uint8_t *ptr = chSeqCurrent + 1;
+	if (*ptr != INVALID_ID) {
 		// Change ADC channel
-		ADMUX = _BV(ADLAR) | *chSeqCurrent;
+		ADMUX = _BV(ADLAR) | *ptr;
 		ADCSRA |= _BV(ADSC);
+		chSeqCurrent = ptr;
 		return;
 	}
-	adcBufferCurrent = adcBufferStart;
+
 	chSeqCurrent = channelSequence;
 	ADMUX = _BV(ADLAR) | *chSeqCurrent;
 
@@ -183,11 +193,10 @@ ISR(ADC_vect, ISR_NOBLOCK)
 		return;
 	}
 
-	if (pause)
+	if (pause || adcBufferCurrent != adcBufferStart)
 		return;
-	if (adcBufferCurrent != adcBufferStart)
-		return;
-	stopADC();
+	pauseADC();
 	sendData(adcTxBuffer, adcTxBufferLength);
-	startADC();
+	poolSending();
+	resumeADC();
 }
