@@ -1,4 +1,4 @@
-DIR	:= optional/dac
+DIR	:= $(OPTDIR)/dac
 NSRC	:= dac.c
 
 SRC	:= $(SRC) $(NSRC:%=$(DIR)/%)
