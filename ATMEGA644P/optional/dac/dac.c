@@ -3,8 +3,8 @@
 #include <avr/pgmspace.h>
 #include <util/delay.h>
 #include <instructions.h>
+#include <uart.h>
 #include "dac.h"
-#include "uart.h"
 #include "ctrl.h"
 
 // In <avr/cpufunc.h>, but WinAVR doesn't have the file

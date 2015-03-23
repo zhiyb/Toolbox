@@ -6,7 +6,9 @@
 #include "uart.h"
 #include "info.h"
 #include "adc.h"
+#ifdef ENABLE_DAC
 #include "dac.h"
+#endif
 
 volatile uint8_t pause = 1;
 
@@ -24,7 +26,9 @@ static void ctrlDeviceInfo(void)
 	sendChar(CMD_INFO);
 	sendValue(FW_VERSION, 4);
 	sendString(DEVICE_NAME);
+#ifdef ENABLE_DAC
 	ctrlDACControllerGenerate();
+#endif
 	ctrlADCControllerGenerate();
 }
 
@@ -53,9 +57,11 @@ void ctrlRootLoop(void)
 	case CMD_CONTROLLER:
 		sendChar(CMD_ACK);
 		switch (receiveChar()) {
+#ifdef ENABLE_DAC
 		case CTRL_DAC_ID:
 			ctrlDACController();
 			break;
+#endif
 		}
 		break;
 	case CMD_INFO:
