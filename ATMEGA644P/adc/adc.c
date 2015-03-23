@@ -46,7 +46,7 @@ void initADC(void)
 
 	ADMUX = _BV(ADLAR) | 0;
 	// Prescaler 64
-	ADCSRA = _BV(ADATE) | _BV(ADIF) | _BV(ADIE) | 3;
+	ADCSRA = _BV(ADATE) | _BV(ADIF) | _BV(ADIE) | 6;
 	ADCSRB = _BV(ADTS1) | _BV(ADTS0);
 	DIDR0 |= _BV(ADC0D);
 	ADCSRA |= _BV(ADEN);
