@@ -9,6 +9,9 @@
 #ifdef ENABLE_DAC
 #include "dac.h"
 #endif
+#ifdef ENABLE_PWM
+#include "pwm.h"
+#endif
 
 volatile uint8_t pause = 1;
 
@@ -28,6 +31,9 @@ static void ctrlDeviceInfo(void)
 	sendString(DEVICE_NAME);
 #ifdef ENABLE_DAC
 	ctrlDACControllerGenerate();
+#endif
+#ifdef ENABLE_PWM
+	ctrlPWMControllerGenerate();
 #endif
 	ctrlADCControllerGenerate();
 }
@@ -60,6 +66,11 @@ void ctrlRootLoop(void)
 #ifdef ENABLE_DAC
 		case CTRL_DAC_ID:
 			ctrlDACController();
+			break;
+#endif
+#ifdef ENABLE_PWM
+		case CTRL_PWM_ID:
+			ctrlPWMController();
 			break;
 #endif
 		}

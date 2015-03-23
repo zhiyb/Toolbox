@@ -7,6 +7,9 @@
 #ifdef ENABLE_DAC
 #include "dac.h"
 #endif
+#ifdef ENABLE_PWM
+#include "pwm.h"
+#endif
 
 void init(void)
 {
@@ -18,6 +21,9 @@ void init(void)
 	initADC();
 #ifdef ENABLE_DAC
 	initDAC();
+#endif
+#ifdef ENABLE_PWM
+	initPWM();
 #endif
 }
 
