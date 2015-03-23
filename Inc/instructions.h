@@ -5,7 +5,7 @@
 //#define PKG_SYNC	(uint16_t)0xAA55
 #define FW_VERSION	0
 #define INVALID_ID	__UINT8_MAX__
-#define BAUD		1500000
+#define UART_BAUD	1500000
 
 #define CMD_NOP			'\x00'
 #define CMD_RESET		'R'
@@ -36,6 +36,7 @@
 #define CTRL_CHECKBOX	7
 #define CTRL_SELECTOR	8
 #define CTRL_SELECTED	9
+#define CTRL_NEW_COLUMN	10
 #define CTRL_READONLY	0x80
 
 #endif
