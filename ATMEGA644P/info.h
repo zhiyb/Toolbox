@@ -3,5 +3,6 @@
 
 #define DEVICE_NAME	"ATmega644P"
 #define SYS_CLK		F_CPU
+#define BAUD		UART_BAUD
 
 #endif

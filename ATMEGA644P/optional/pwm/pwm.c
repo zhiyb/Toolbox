@@ -15,8 +15,7 @@
 void initPWM(void)
 {
 	// Port initialisation
-	DDRD |= PWM_OCA | PWM_OCB;
-	PORTD |= PWM_OCA | PWM_OCB;
+	PWM_DDR |= PWM_OCA | PWM_OCB;
 
 	// Timer 1 initialisation
 	initTimer1();

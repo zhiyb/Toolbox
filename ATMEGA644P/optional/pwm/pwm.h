@@ -11,6 +11,7 @@
 #include <inttypes.h>
 
 // PWM using timer 1, PORTD
+#define PWM_DDR	DDRD
 #define PWM_OCA	_BV(5)
 #define PWM_OCB	_BV(4)
 

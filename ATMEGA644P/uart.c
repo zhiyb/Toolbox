@@ -4,6 +4,7 @@
 #include <instructions.h>
 #include <string.h>
 #include "uart.h"
+#include "info.h"
 
 static struct rxBuffer_t {
 	uint8_t *read;

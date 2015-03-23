@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/pgmspace.h>
 #include <instructions.h>
 #include "handles.h"
 #include "timer0.h"
@@ -28,7 +29,7 @@ static void ctrlDeviceInfo(void)
 {
 	sendChar(CMD_INFO);
 	sendValue(FW_VERSION, 4);
-	sendString(DEVICE_NAME);
+	sendString_P(PSTR(DEVICE_NAME));
 #ifdef ENABLE_DAC
 	ctrlDACControllerGenerate();
 #endif
