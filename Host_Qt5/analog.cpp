@@ -48,7 +48,7 @@ void Analog::showEvent(QShowEvent *e)
 
 void Analog::hideEvent(QHideEvent *e)
 {
-	stopADC();
+	startADC(false);
 	analog->buffer.validSize = 0;
 	analog->buffer.position = 0;
 	QWidget::hideEvent(e);
@@ -104,7 +104,7 @@ void Analog::initADC(void)
 	set.bytes = 1;
 	msg.settings.append(set);
 	set.id = CTRL_DATA;				// Set data format
-	set.value = analog->timebase.scanMode() ? CTRL_DATA : CTRL_FRAME;
+	set.value = analog->scanMode();
 	set.bytes = 1;
 	msg.settings.append(set);
 	dev->send(msg);
@@ -117,28 +117,14 @@ void Analog::initADC(void)
 	//startADC();
 }
 
-void Analog::startADC(void)
+void Analog::startADC(bool start)
 {
 	message_t msg;
 	msg.command = CMD_ANALOG;
 	msg.id = analog->id;
 	message_t::set_t set;
 	set.id = CTRL_START;
-	set.value = 1;
-	set.bytes = 1;
-	msg.settings.append(set);
-	msg.settings.append(message_t::set_t());	// END
-	dev->send(msg);
-}
-
-void Analog::stopADC(void)
-{
-	message_t msg;
-	msg.command = CMD_ANALOG;
-	msg.id = analog->id;
-	message_t::set_t set;
-	set.id = CTRL_START;
-	set.value = 0;
+	set.value = start;
 	set.bytes = 1;
 	msg.settings.append(set);
 	msg.settings.append(message_t::set_t());	// END
@@ -174,7 +160,7 @@ void Analog::messageSent(quint32 sequence)
 		return;
 	//qDebug(tr("Analog::messageSent: %1").arg(sequence).toLocal8Bit());
 	updateSequence = 0;
-	analog->update();
+	//analog->update();
 	startADC();
 }
 
@@ -188,7 +174,7 @@ void Analog::analogData(analog_t::data_t data)
 	case CTRL_DATA:
 		if ((quint32)data.data.count() != analog->channelsCount()) {
 			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
-			break;
+			return;
 		}
 		for (int i = 0; i < analog->channels.count(); i++)
 			if (analog->channels.at(i).enabled)
@@ -202,7 +188,7 @@ void Analog::analogData(analog_t::data_t data)
 	case CTRL_FRAME:
 		if ((quint32)data.data.count() != analog->channelsCount() * analog->buffer.sizePerChannel) {
 			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
-			break;
+			return;
 		}
 		for (quint32 pos = 0; pos < analog->buffer.sizePerChannel; pos++)
 			for (int i = 0; i < analog->channels.count(); i++)

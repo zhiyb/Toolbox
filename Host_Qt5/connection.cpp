@@ -321,6 +321,18 @@ send:
 		writeValue(set.value, set.bytes);
 	}
 	this->count.txPackage++;
+	if (msg.update.id != INVALID_ID) {
+		info_t *info = (analog_t *)findInfo(CMD_ANALOG, msg.update.id);
+		if (!info)
+			emit error(tr("No matching info data ID: %1").arg(msg.update.id));
+		switch (info->type()) {
+		case CMD_ANALOG:
+			((analog_t *)info)->update();
+			break;
+		default:
+			emit error(tr("Update not supported for type: %1").arg(info->type()));
+		}
+	}
 	emit messageSent(msg.sequence);
 }
 
@@ -490,7 +502,7 @@ char Connection::readData(int msec)
 		emit analogData(readAnalogData());
 		break;
 	case 'V':
-		qDebug(tr("%1: Received debug V").arg(QTime::currentTime().toString()).toLocal8Bit());
+		qDebug(tr("%1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
 	case ((quint8)-1):
 		return -1;
 	default:

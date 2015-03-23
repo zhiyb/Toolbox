@@ -1,7 +1,8 @@
-#include "structures.h"
-#include "conv.h"
+#include <cmath>
 #include <QDebug>
 #include <QObject>
+#include "structures.h"
+#include "conv.h"
 
 const qreal scale_t::factor[3] = {1, 2.5, 5};
 const quint32 analog_t::grid_t::preferredPointsPerGrid = 150;
@@ -28,9 +29,9 @@ bool message_t::similar(const message_t &msg) const
 	return true;
 }
 
-bool hwtimer_t::setFrequency(const float freq)
+bool hwtimer_t::setFrequency(const qreal freq)
 {
-	quint32 value = clockFrequency / freq;
+	quint32 value = std::ceil((qreal)clockFrequency / freq);
 	//qDebug(QObject::tr("Timer set frequency: %1, clock frequency: %2, value: %3, maximum: %4").arg(freq).arg(clockFrequency).arg(value).arg(maximum()).toLocal8Bit());
 	if (value == 0)
 		value++;
@@ -76,6 +77,14 @@ quint32 analog_t::channelsCount(void) const
 	return count;
 }
 
+quint32 analog_t::channelsCountConfigure() const
+{
+	quint32 count = 0;
+	for (int i = 0; i < channels.count(); i++)
+		count += channels.at(i).configure.enabled;
+	return count;
+}
+
 void analog_t::setChannelsEnabled(quint32 enabled)
 {
 	quint32 mask = 1;
@@ -103,26 +112,35 @@ void analog_t::init(void)
 
 bool analog_t::calculate(void)
 {
-	if (timebase.configure.scanMode()) {
-		if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value()))
-			timer.configure.value = timer.maximum();
-	} else {
-		quint32 sizePerChannel = buffer.size / channelsCount();
-		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid)
+	qDebug() << "[DEBUG] Analog calculate";
+	if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value())) {
+		qDebug(QObject::tr("Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
+		timer.configure.value = timer.maximum();
+	}
+	if (!scanModeConfigure()) {
+		quint32 sizePerChannel = buffer.size / channelsCountConfigure();
+		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
+			qDebug(QObject::tr("Analog calculate: Buffer too small").toLocal8Bit());
 			return false;
+		}
 		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
 			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
-		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value()))
+		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value())) {
+			qDebug(QObject::tr("Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 			timer.configure.value = timer.maximum();
-		if (timer.frequencyConfigure() >= maxFrequency) {
-			timer.setFrequency(maxFrequency);
-			timer.configure.value++;
+		}
+		if (timer.frequencyConfigure() * channelsCountConfigure() >= maxFrequency) {
+			timer.setFrequency((maxFrequency - 1) / channelsCountConfigure());
 			sizePerChannel = gridTotalTimeConfigure() * timer.frequencyConfigure();
-			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid)
+			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
+				qDebug(QObject::tr("Analog calculate: Reached maximum ADC speed").toLocal8Bit());
 				return false;
+			} else
+				qDebug(QObject::tr("Analog calculate: At maximum ADC speed").toLocal8Bit());
 		}
 		buffer.configure.sizePerChannel = sizePerChannel;
 	}
+	qDebug() << scanModeConfigure() << channelsCountConfigure() << timer.frequencyConfigure() << timer.configure.value << timebase.configure.scale.value() << buffer.configure.sizePerChannel;
 	return true;
 }
 
@@ -131,13 +149,16 @@ void analog_t::update(void)
 	qDebug() << "[DEBUG] Analog update";
 	timer.update();
 	timebase.update();
-	if (timebase.scanMode())
+	for (int i = 0; i < channels.count(); i++)
+		channels[i].enabled = channels[i].configure.enabled;
+	if (scanMode())
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 	else
 		buffer.sizePerChannel = buffer.configure.sizePerChannel;
 	grid.pointsPerGrid = timer.frequency() * timebase.scale.value();
 	buffer.position = 0;
 	buffer.validSize = 0;
+	qDebug() << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);
 }
@@ -154,6 +175,6 @@ analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 
 void analog_t::channel_t::update(const int bufferSize)
 {
-	enabled = configure.enabled;
+	//enabled = configure.enabled;
 	buffer.resize(bufferSize);
 }

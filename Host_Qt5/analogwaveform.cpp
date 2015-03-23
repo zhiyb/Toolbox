@@ -1,5 +1,6 @@
 #include "analogwaveform.h"
 
+//#define USE_STENCIL
 #define MINIMUM_SIZE_SQUARE	480
 #define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
 //#define WAVE_YT_DRAW_MODE	GL_POINTS
@@ -98,7 +99,9 @@ void AnalogWaveform::initializeGL(void)
 	//glEnable(GL_POINT_SPRITE);
 	glEnable(GL_MULTISAMPLE);
 	//glEnable(GL_LINE_SMOOTH);
+#ifdef USE_STENCIL
 	glEnable(GL_STENCIL_TEST);
+#endif
 
 	try {
 		general.vsh = loadShaderFile(GL_VERTEX_SHADER, "vertex.vsh");
@@ -152,7 +155,7 @@ void AnalogWaveform::resizeGL(int w, int h)
 {
 	if (init()) {
 		analog->calculate();
-		if (analog->timebase.scanMode())
+		if (analog->scanMode())
 			analog->update();
 		else {
 			message_t msg;
@@ -171,6 +174,7 @@ void AnalogWaveform::resizeGL(int w, int h)
 			dev->send(msg);
 
 			msg = message_t();
+			msg.update.id = analog->id;
 			emit updateAt(msg.sequence);
 			msg.command = CMD_TIMER;
 			msg.id = analog->timer.id;
@@ -213,6 +217,7 @@ void AnalogWaveform::paintGL(void)
 
 	// Draw waveforms
 	updateIndices();
+#ifdef USE_STENCIL
 	// Draw stencil
 	glUseProgram(general.program);
 	glEnableVertexAttribArray(general.location.vertex);
@@ -229,6 +234,7 @@ void AnalogWaveform::paintGL(void)
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glStencilMask(0x00);
 	glStencilFunc(GL_EQUAL, 1, 0xFF);
+#endif
 	// Draw YT waveforms
 	glUseProgram(wave.programYT);
 	glEnableVertexAttribArray(wave.locationYT.data);
@@ -249,7 +255,7 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
-			if (analog->timebase.scanMode()) {
+			if (analog->scanMode()) {
 				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
 				if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)
 					glDrawArrays(WAVE_YT_DRAW_MODE, analog->buffer.position + analog->grid.pointsPerGrid / 5,\

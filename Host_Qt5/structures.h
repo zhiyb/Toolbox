@@ -13,6 +13,11 @@ struct message_t {
 	message_t(void) : id(INVALID_ID) {sequence = messageCount++;}
 	bool similar(const message_t &msg) const;
 
+	struct update_t {
+		update_t(void) : id(INVALID_ID) {}
+		quint8 id;
+	} update;
+
 	char command;
 	quint8 id;
 	quint32 sequence;
@@ -65,7 +70,7 @@ struct resolution_t {
 struct hwtimer_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_TIMER;}
 
-	bool setFrequency(const float freq);
+	bool setFrequency(const qreal freq);
 	void update(void) {value = configure.value;}
 	float frequency(void) const {return (float)clockFrequency / (float)value;}
 	float frequencyConfigure(void) const {return (float)clockFrequency / (float)configure.value;}
@@ -95,12 +100,15 @@ struct analog_t : public info_t, public resolution_t {
 	void init(void);
 	bool calculate(void);
 	void update(void);
-	qreal gridTotalTime(void) {return timebase.scale.value() * (float)grid.count.width();}
-	qreal gridTotalTimeConfigure(void) {return timebase.configure.scale.value() * (float)grid.count.width();}
+	qreal gridTotalTime(void) {return timebase.scale.value() * (qreal)grid.count.width();}
+	qreal gridTotalTimeConfigure(void) {return timebase.configure.scale.value() * (qreal)grid.count.width();}
 	quint32 channelsCount(void) const;
+	quint32 channelsCountConfigure(void) const;
 	void setChannelsEnabled(quint32 enabled);
 	quint32 channelsEnabledConfigure(void) const;
 	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
+	bool scanMode(void) const {return timer.frequency() * channelsCount() < scanFrequency;}
+	bool scanModeConfigure(void) const {return timer.frequencyConfigure() * channelsCountConfigure() < scanFrequency;}
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
@@ -159,12 +167,12 @@ struct analog_t : public info_t, public resolution_t {
 
 	struct timebase_t {
 		void update(void) {scale = configure.scale;}
-		bool scanMode(void) {return scale.value() >= 1;}
+		//bool scanMode(void) {return scale.value() >= 1;}
 
 		scale_t scale;
 
 		struct configure_t {
-			bool scanMode(void) {return scale.value() >= 1;}
+			//bool scanMode(void) {return scale.value() >= 1;}
 
 			scale_t scale;
 		} configure;

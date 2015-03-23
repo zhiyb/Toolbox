@@ -30,10 +30,10 @@ void TimebaseCtrl::scaleChanged()
 		set.bytes = 1;
 		msg.settings.append(set);
 		set.id = CTRL_DATA;				// Set data format
-		set.value = analog->timebase.configure.scanMode() ? CTRL_DATA : CTRL_FRAME;
+		set.value = analog->scanModeConfigure();
 		set.bytes = 1;
 		msg.settings.append(set);
-		if (!analog->timebase.configure.scanMode()) {
+		if (!analog->scanModeConfigure()) {
 			set.id = CTRL_FRAME;			// Set frame(buffer) length per channel
 			set.value = analog->buffer.configure.sizePerChannel;
 			set.bytes = 4;
@@ -43,6 +43,7 @@ void TimebaseCtrl::scaleChanged()
 		dev->send(msg);
 
 		msg = message_t();
+		msg.update.id = analog->id;
 		emit updateAt(msg.sequence);
 		msg.command = CMD_TIMER;
 		msg.id = analog->timer.id;
