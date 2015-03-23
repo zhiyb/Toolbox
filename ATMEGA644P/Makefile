@@ -1,7 +1,8 @@
 # Modified by zhiyb (Yubo Zhi)
 
 PRG	= ATMEGA644P
-SRC	= main.c uart.c ctrl.c adc.c timer0.c
+SRC	= main.c uart.c ctrl.c
+SUBDIRS	= adc
 LIB	= 
 LIBDIR	= 
 VERSION	= 0.0.1
