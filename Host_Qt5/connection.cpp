@@ -165,6 +165,7 @@ bool Connection::waitForReadAll(int count, int msec)
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
+	//qDebug(tr("[DEBUG] Connection::writeChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
 	count.tx++;
 }
 
@@ -252,6 +253,7 @@ void Connection::write(QByteArray &data)
 
 void Connection::writeValue(const quint32 value, const quint32 bytes)
 {
+	//qDebug(tr("[DEBUG] Connection::writeValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
 	con->write((char *)&value, bytes);
 	count.tx += bytes;
 }
@@ -263,8 +265,10 @@ int Connection::readChar(int msec)
 	if (con->bytesAvailable() < 1)
 		return -1;
 	con->read(&c, 1);
+	/*if (c == CMD_ACK)
+		qDebug("ACK");*/
 	count.rx++;
-	return c;
+	return (quint8)c;
 }
 
 quint32 Connection::readValue(const quint32 bytes, int msec)
@@ -294,27 +298,27 @@ QString Connection::readString(int msec)
 
 void Connection::writeMessage(message_t &msg)
 {
-	//qDebug(tr("Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
-	quickResync();
+	//qDebug(tr("[DEBUG] Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
+	//quickResync();
 send:
 	writeChar(msg.command);
 	waitForWrite();
 	QTime t(QTime::currentTime());
 	char c = 0;
-	while (t.msecsTo(QTime::currentTime()) < 100 && (c = readData()) == 0);
+	while (t.msecsTo(QTime::currentTime()) < 1000 && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
 		qDebug(tr("[WARNING] Connection::writeMessage: Quick resync").toLocal8Bit());
 		quickResync();
 		goto send;
 	} else if (c != CMD_ACK) {
-		emit error(QString(tr("Message %1: No ACK received for command '%2': %3(%4)")).arg(msg.sequence).arg(msg.command).arg((quint8)c).arg(c));
+		emit error(tr("Message %1: No ACK received for command '%2': %3(%4)").arg(msg.sequence).arg(msg.command).arg((quint8)c).arg(c));
 		return;
 	}
 	if (msg.id != INVALID_ID)
 		writeChar(msg.id);
 	while (msg.settings.count()) {
 		struct message_t::set_t set = msg.settings.dequeue();
-		//qDebug(tr("  Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value).toLocal8Bit());
+		//qDebug(tr("[DEBUG]   Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value).toLocal8Bit());
 		writeChar(set.id);
 		if (set.id == INVALID_ID)
 			break;
@@ -467,7 +471,7 @@ analog_t::data_t Connection::readAnalogData(void)
 	}
 	data.type = readChar();
 	quint32 count = analog->channelsCount();
-	//qDebug(tr("Connection::readAnalogData: %1").arg(count).toLocal8Bit());
+	//qDebug(tr("[DEBUG] Connection::readAnalogData: %1").arg(count).toLocal8Bit());
 	data.data.resize(count);
 	switch (data.type) {
 	case CTRL_FRAME:
@@ -485,7 +489,7 @@ analog_t::data_t Connection::readAnalogData(void)
 
 char Connection::readData(int msec)
 {
-	char c = readChar(msec);
+	int c = readChar(msec);
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
@@ -507,6 +511,8 @@ char Connection::readData(int msec)
 		return -1;
 #endif
 	case -1:
+		if (msec > 100)
+			qDebug(tr("[DEBUG] Connection::readData: -1").toLocal8Bit());
 		return -1;
 	default:
 		qDebug(tr("[WARNING] Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());

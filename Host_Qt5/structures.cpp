@@ -106,7 +106,7 @@ bool analog_t::calculate(void)
 {
 	//qDebug() << "[DEBUG] Analog calculate";
 	if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value())) {
-		qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
+		//qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 		timer.configure.value = timer.maximum();
 	}
 	if (!scanMode(true)) {
@@ -118,7 +118,7 @@ bool analog_t::calculate(void)
 		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
 			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
 		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value())) {
-			qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
+			//qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 			timer.configure.value = timer.maximum();
 		}
 		if (timer.frequency(true) * channelsCount(true) >= maxFrequency) {

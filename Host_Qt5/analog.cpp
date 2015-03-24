@@ -62,35 +62,37 @@ void Analog::updateConfigure(void)
 	message_t msg(CMD_ANALOG, analog->id);
 	// Stop ADC
 	msg.settings.append(message_t::set_t(CTRL_START, 1, 0));
-	// Set channel
+	// Set channels
 	if (analog->channelsEnabled(false) != analog->channelsEnabled(true)) {
 		send = true;
-		//qDebug(tr("[DEBUG] Analog::updateConfigure: Channel changed").toLocal8Bit());
 		msg.settings.append(message_t::set_t(CTRL_SET, analog->channelsBytes(), analog->channelsEnabled(true)));
 	}
 	// Set data format
 	if (analog->scanMode(false) != analog->scanMode(true)) {
 		send = true;
-		//qDebug(tr("[DEBUG] Analog::updateConfigure: Data format changed").toLocal8Bit());
 		msg.settings.append(message_t::set_t(CTRL_DATA, 1, analog->scanMode(true)));
 	}
 	// Set frame(buffer) length per channel
 	if (!analog->scanMode(true) && analog->buffer.sizePerChannel != analog->buffer.configure.sizePerChannel) {
 		send = true;
-		//qDebug(tr("[DEBUG] Analog::updateConfigure: Buffer length changed").toLocal8Bit());
 		msg.settings.append(message_t::set_t(CTRL_FRAME, 4, analog->buffer.configure.sizePerChannel));
 	}
 	// Set trigger
 	// End settings
 	msg.settings.append(message_t::set_t());
-	if (send || timerUpdateRequired()) {
+	// Update configurations
+	if (timerUpdateRequired()) {
 		dev->send(msg);
 		updateTimer();
-		//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
+	} else if (send) {
+		msg.update.id = analog->id;
+		updateAt(msg.sequence);
+		dev->send(msg);
 	} else {
 		analog->update();
 		waveform->update();
 	}
+	//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
 }
 
 void Analog::rebuild(analog_t *analog)
@@ -198,8 +200,6 @@ void Analog::analogData(analog_t::data_t data)
 {
 	if (data.id != analog->id)
 		return;
-	/*if (analog->buffer.validSize == analog->buffer.sizePerChannel)
-		return;*/
 	//qDebug(tr("[%1] Analog data type: %2, count: %3").arg(QTime::currentTime().toString()).arg(data.type).arg(data.data.count()).toLocal8Bit());
 	quint32 count = 0;
 	switch (data.type) {
