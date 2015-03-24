@@ -22,4 +22,5 @@ void main(void)
 	position.z = 0.f;
 	position.w = 1.f;
 	gl_Position.xyzw = projection * modelView * position;
+	gl_PointSize = 2.f;
 }

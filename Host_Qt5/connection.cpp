@@ -471,7 +471,7 @@ analog_t::data_t Connection::readAnalogData(void)
 	data.data.resize(count);
 	switch (data.type) {
 	case CTRL_FRAME:
-		data.data.resize(analog->buffer.sizePerChannel * analog->channelsCount());
+		data.data.resize(analog->buffer.sizePerChannel * count);
 		count = readValue(4);
 		for (quint32 i = count; i < analog->buffer.sizePerChannel * analog->channelsCount(); i++)
 			data.data[i] = readValue(analog->bytes());
@@ -501,7 +501,7 @@ char Connection::readData(int msec)
 	case CMD_ANALOGDATA:
 		emit analogData(readAnalogData());
 		break;
-#if 0
+#if 1
 	case 'V':
 		qDebug(tr("%1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
 		return -1;
@@ -509,7 +509,7 @@ char Connection::readData(int msec)
 	case -1:
 		return -1;
 	default:
-		//qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
 	count.rxPackage++;

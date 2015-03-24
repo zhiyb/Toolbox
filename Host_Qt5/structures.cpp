@@ -171,6 +171,8 @@ analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 	else
 		clr = QColor(qrand() % 256, qrand() % 256, qrand() % 256);
 	configure.colour = conv::colorToVector4D(clr);
+	configure.displayOffset = 0;
+	configure.enabled = enabled;
 }
 
 void analog_t::channel_t::update(const int bufferSize)

@@ -1,9 +1,9 @@
 #include "analogwaveform.h"
 
-#define USE_STENCIL
+//#define USE_STENCIL
 #define MINIMUM_SIZE_SQUARE	480
-#define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
-//#define WAVE_YT_DRAW_MODE	GL_POINTS
+//#define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
+#define WAVE_YT_DRAW_MODE	GL_POINTS
 
 AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(parent)
 {
@@ -248,7 +248,7 @@ void AnalogWaveform::paintGL(void)
 	glUniform1f(wave.locationYT.timebase, analog->timebase.scale.value());
 	glUniform1f(wave.locationYT.frequency, analog->timer.frequency());
 	for (int i = 0; i < analog->channels.count(); i++) {
-		analog_t::channel_t &channel = analog->channels[i];
+		const analog_t::channel_t &channel = analog->channels.at(i);
 		if (channel.enabled) {
 			glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, channel.buffer.constData());
 			glUniform1f(wave.locationYT.reference, channel.reference);
@@ -264,6 +264,19 @@ void AnalogWaveform::paintGL(void)
 				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.validSize);
 		}
 	}
+#if 0
+	QVector<quint32> testData;
+	testData.resize(analog->buffer.sizePerChannel);
+	for (int i = 0; i < testData.size(); i++)
+		testData[i] = i;
+	glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, testData.constData());
+	glUniform1f(wave.locationYT.reference, 3.3);
+	glUniform1f(wave.locationYT.offset, 0);
+	glUniform1f(wave.locationYT.scale, 1);
+	QVector4D clr(1.f, 1.f, 1.f, 0.2f);
+	glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&clr);
+	glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.sizePerChannel);
+#endif
 	glDisableVertexAttribArray(wave.locationYT.data);
 	glDisableVertexAttribArray(wave.locationYT.index);
 	glClear(GL_STENCIL_BUFFER_BIT);
