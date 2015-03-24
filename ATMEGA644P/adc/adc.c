@@ -160,7 +160,7 @@ void ctrlADCControllerGenerate(void)
 	sendChar(CTRL_ADC_CHANNELS);		// Channels
 	uint8_t i;
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
-		sendChar(i << 1);		// Channel ID
+		sendChar(i);			// Channel ID
 		sendString_P((PGM_P)pgm_read_word(channelName + i));
 		sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
 		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
