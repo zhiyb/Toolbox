@@ -299,15 +299,14 @@ void Connection::writeMessage(message_t &msg)
 send:
 	writeChar(msg.command);
 	waitForWrite();
-	int count = 1024;
+	QTime t(QTime::currentTime());
 	char c = 0;
-	while ((count == -1 || count--) && (c = readData()) == 0);
+	while (t.msecsTo(QTime::currentTime()) < 100 && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
 		qDebug(tr("[WARNING] Connection::writeMessage: Quick resync").toLocal8Bit());
 		quickResync();
 		goto send;
-	}
-	if (c != CMD_ACK) {
+	} else if (c != CMD_ACK) {
 		emit error(QString(tr("Message %1: No ACK received for command '%2': %3(%4)")).arg(msg.sequence).arg(msg.command).arg((quint8)c).arg(c));
 		return;
 	}
