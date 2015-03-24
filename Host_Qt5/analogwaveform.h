@@ -63,7 +63,7 @@ private:
 	} stencil;
 
 	QMatrix4x4 projection;
-	QVector<GLuint> indices;
+	QVector<GLfloat> indices;
 
 	bool init(void);
 	void generateGrid(void);

@@ -239,7 +239,7 @@ void AnalogWaveform::paintGL(void)
 	glUseProgram(wave.programYT);
 	glEnableVertexAttribArray(wave.locationYT.data);
 	glEnableVertexAttribArray(wave.locationYT.index);
-	glVertexAttribPointer(wave.locationYT.index, 1, GL_INT, GL_TRUE, 0, indices.constData());
+	glVertexAttribPointer(wave.locationYT.index, 1, GL_FLOAT, GL_TRUE, 0, indices.constData());
 	glUniformMatrix4fv(wave.locationYT.projection, 1, GL_FALSE, projection.constData());
 	glUniformMatrix4fv(wave.locationYT.modelView, 1, GL_FALSE, mv.constData());
 	glUniform1i(wave.locationYT.maxValue, analog->maximum());
