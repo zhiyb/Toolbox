@@ -23,7 +23,7 @@ static uint8_t *adcBufferStart, *adcBufferCurrent, *adcBufferEnd;
 static uint16_t adcTxBufferLength;
 static volatile uint8_t adcTxBufferRequest;
 
-static uint32_t adcBufferCount;	// Buffered conversions count
+static uint16_t adcBufferCount;	// Buffered conversions count
 static uint8_t channelEnabled = 0xFF;
 static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
 
@@ -100,7 +100,6 @@ static inline void stopADC(void)
 
 static void configureADC(void)
 {
-	//stopADC();
 	uint8_t mask = 0x01, i;
 	channelCount = 0;
 	chSeqCurrent = channelSequence;
@@ -130,14 +129,14 @@ loop:
 		configureADC();
 		break;
 	case CTRL_DATA:
-		scanMode = receiveChar() == CTRL_DATA;
-		adcBufferCount = channelCount;
-		stopADC();
+		scanMode = receiveChar();
 		break;
-	case CTRL_FRAME:
-		receiveData((uint8_t *)&adcBufferCount, 4);
-		adcBufferCount *= channelCount;
+	case CTRL_FRAME: {
+		uint32_t cnt;
+		receiveData((uint8_t *)&cnt, 4);
+		adcBufferCount = cnt * channelCount;
 		break;
+	}
 	case INVALID_ID:
 	default:
 		return;

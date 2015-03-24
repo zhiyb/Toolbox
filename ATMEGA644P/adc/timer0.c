@@ -13,7 +13,6 @@ void initTimer0(void)
 
 void startTimer0(void)
 {
-	PORTB |= _BV(7);
 	// Prescaler 64
 	TCCR0B = _BV(CS01) | _BV(CS00);
 }
@@ -22,7 +21,6 @@ void stopTimer0(void)
 {
 	TCCR0B = 0;
 	TCNT0 = 0;
-	PORTB &= ~_BV(7);
 }
 
 static inline void setTimer0(const uint8_t v)

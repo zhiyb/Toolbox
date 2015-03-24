@@ -53,7 +53,7 @@ int receiveChar(void)
 	return data;
 }
 
-uint32_t receiveData(uint8_t *data, uint32_t count)
+uint16_t receiveData(uint8_t *data, uint16_t count)
 {
 	uint8_t i = count;
 	while (count--)
@@ -67,7 +67,7 @@ void sendChar(char c)
 	UDR0 = c;
 }
 
-void sendData(uint8_t *buffer, uint32_t length)
+void sendData(uint8_t *buffer, uint16_t length)
 {
 	while (length--)
 		sendChar(*buffer++);
