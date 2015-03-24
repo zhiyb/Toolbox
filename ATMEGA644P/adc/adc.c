@@ -18,15 +18,16 @@ static uint8_t channelSequence[CTRL_ADC_CHANNELS + 1];
 static uint8_t *chSeqCurrent;
 
 static uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
-static uint8_t *adcTxBuffer;
+uint8_t *adcTxBuffer;
 static uint8_t *adcBufferStart, *adcBufferCurrent, *adcBufferEnd;
-static uint16_t adcTxBufferLength;
-static volatile uint8_t adcTxBufferRequest;
+uint16_t adcTxBufferLength;
+volatile uint8_t adcTxBufferRequest;
 
 static uint16_t adcBufferCount;	// Buffered conversions count
 static uint8_t channelEnabled = 0xFF;
 static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
 
+static inline void stopADC(void);
 static void configureADC(void);
 
 static uint32_t floatToRawUInt32(float x)
@@ -50,11 +51,13 @@ void initADC(void)
 	ADCSRB = _BV(ADTS1) | _BV(ADTS0);
 	DIDR0 = 0xFF;
 	ADCSRA |= _BV(ADEN);
+
+	resetADC();
 }
 
 void resetADC(void)
 {
-	adcTxBufferRequest = 0;
+	stopADC();
 }
 
 static inline void resumeADC(void)
@@ -65,6 +68,7 @@ static inline void resumeADC(void)
 
 static void startADC(void)
 {
+	adcTxBufferRequest = 0;
 	if (!channelCount)
 		return;
 	if (scanMode) {
@@ -96,6 +100,7 @@ static inline void pauseADC(void)
 static inline void stopADC(void)
 {
 	pauseADC();
+	adcTxBufferRequest = 0;
 }
 
 static void configureADC(void)
@@ -192,8 +197,11 @@ ISR(ADC_vect, ISR_NOBLOCK)
 		return;
 	}
 
-	if (pause || adcBufferCurrent != adcBufferStart)
+	if (pause)
 		return;
+	if (adcBufferCurrent != adcBufferStart)
+		return;
+
 	pauseADC();
 	sendData(adcTxBuffer, adcTxBufferLength);
 	poolSending();

@@ -9,7 +9,7 @@
 #define CTRL_ADC_CHANNELS_BYTES	1
 #define CTRL_ADC_RESOLUTION	8
 #define CTRL_ADC_BYTES		1
-#define CTRL_ADC_MAX_FREQUENCY	(SYS_CLK / 64 / (13 + 1))
+#define CTRL_ADC_MAX_FREQUENCY	(SYS_CLK / 64 / (13 + 2))
 #define CTRL_ADC_SCAN_FREQUENCY	(BAUD / 10 / (CTRL_ADC_BYTES + 4))
 #if (CTRL_ADC_SCAN_FREQUENCY > CTRL_ADC_MAX_FREQUENCY)
 #undef CTRL_ADC_SCAN_FREQUENCY
@@ -26,10 +26,9 @@
 #define ADC_SCAN_ALIGN_BYTES	0
 #define ADC_SCAN_PREPEND_BYTES	3
 
-/*extern uint8_t adcBuffer[ADC_ALIGN_BYTES + ADC_PREPEND_BYTES + ADC_BUFFER_SIZE];
 extern uint8_t *adcTxBuffer;
-extern volatile uint16_t adcTxBufferLength;
-extern volatile uint8_t adcTxBufferRequest;*/
+extern uint16_t adcTxBufferLength;
+extern volatile uint8_t adcTxBufferRequest;
 
 void initADC(void);
 void resetADC(void);

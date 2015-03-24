@@ -1,4 +1,5 @@
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <instructions.h>
 #include "handles.h"
@@ -13,6 +14,8 @@
 #ifdef ENABLE_PWM
 #include "pwm.h"
 #endif
+
+#define SEND_ADC_REQUEST
 
 volatile uint8_t pause = 1;
 
@@ -41,6 +44,16 @@ static void ctrlDeviceInfo(void)
 
 void ctrlRootLoop(void)
 {
+#ifdef SEND_ADC_REQUEST
+	uint8_t req = adcTxBufferRequest;
+#endif
+	adcTxBufferRequest = 0;
+#ifdef SEND_ADC_REQUEST
+	while (req--) {
+		pause = 1;
+		sendData(adcTxBuffer, adcTxBufferLength);
+	}
+#endif
 	pause = 0;
 	switch (receiveChar()) {
 	case CMD_RESET:

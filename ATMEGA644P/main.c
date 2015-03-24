@@ -29,6 +29,7 @@ void init(void)
 
 void reset(void)
 {
+	resetADC();
 	stopTimer0();
 }
 
