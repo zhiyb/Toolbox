@@ -7,10 +7,28 @@ AnalogTriggerCtrl::AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *par
 	setTitle("Trigger");
 
 	QVBoxLayout *layout = new QVBoxLayout(this);
+
+	source = new QComboBox;
+	source->setEditable(false);
+	source->addItem(tr("Free running"));
+	for (int i = 0; i < analog->channels.count(); i++) {
+		const analog_t::channel_t &channel = analog->channels.at(i);
+		source->addItem(tr("%2/%1").arg(channel.name).arg(channel.id));
+	}
+	source->setCurrentIndex(0);
+	layout->addWidget(source);
+
 	QLabel *lID = new QLabel(tr("Hello, world!"));
 	layout->addWidget(lID);
+
+	connect(source, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChanged(int)));
 }
 
-AnalogTriggerCtrl::~AnalogTriggerCtrl()
+void AnalogTriggerCtrl::sourceChanged(int idx)
 {
+	if (idx < 0 || idx > analog->channels.count()) {
+		qDebug(tr("[WARNING] Trigger source index out of range").toLocal8Bit());
+		return;
+	}
+	analog->trigger.configure.source = idx == 0 ? INVALID_ID : analog->channels.at(idx - 1).id;
 }

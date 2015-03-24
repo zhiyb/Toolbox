@@ -19,10 +19,7 @@ Analog::Analog(Device *dev, analog_t *analog, QWidget *parent) : QWidget(parent)
 	layout->addLayout(channelLayout, 0, 1, -1, 1);
 	rebuild(analog);
 	connect(waveform, SIGNAL(updateAt(quint32)), this, SLOT(updateAt(quint32)));
-}
-
-Analog::~Analog()
-{
+	connect(waveform, SIGNAL(reset()), this, SLOT(updateMode()));
 }
 
 bool Analog::event(QEvent *e)
@@ -60,6 +57,27 @@ void Analog::updateAt(quint32 sequence)
 	updateSequence = sequence;
 }
 
+void Analog::configure(bool channel)
+{
+	message_t msg(CMD_ANALOG, analog->id);
+	// Stop ADC
+	msg.settings.append(message_t::set_t(CTRL_START, 1, 0));
+	// Set channel
+	if (channel)
+		msg.settings.append(message_t::set_t(CTRL_SET, analog->channelsBytes(), analog->channelsEnabledConfigure()));
+	// Set data format
+	msg.settings.append(message_t::set_t(CTRL_DATA, 1, analog->scanModeConfigure()));
+	// Set frame(buffer) length per channel
+	if (!analog->scanModeConfigure())
+		msg.settings.append(message_t::set_t(CTRL_FRAME, 4, analog->buffer.configure.sizePerChannel));
+	// End settings
+	msg.settings.append(message_t::set_t());
+	dev->send(msg);
+	//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
+
+	configureTimer();
+}
+
 void Analog::rebuild(analog_t *analog)
 {
 	this->analog = analog;
@@ -90,29 +108,25 @@ void Analog::rebuild(analog_t *analog)
 		AnalogChannelCtrl *ctrl = new AnalogChannelCtrl(dev, analog, i);
 		channelLayout->addWidget(ctrl, i % CHANNEL_ROW_COUNT, i / CHANNEL_ROW_COUNT);
 		connect(ctrl, SIGNAL(updateAt(quint32)), this, SLOT(updateAt(quint32)));
+		connect(ctrl, SIGNAL(reset()), waveform, SLOT(update()));
+		connect(ctrl, SIGNAL(changed()), this, SLOT(updateChannel()));
 	}
 }
 
 void Analog::initADC(void)
 {
-	//stopADC();
-	message_t msg;
-	msg.command = CMD_ANALOG;
-	msg.id = analog->id;
-	message_t::set_t set;
-	set.id = CTRL_START;				// Stop ADC
-	set.value = 0;
-	set.bytes = 1;
-	msg.settings.append(set);
-	set.id = CTRL_DATA;				// Set data format
-	set.value = analog->scanMode();
-	set.bytes = 1;
-	msg.settings.append(set);
+	message_t msg(CMD_ANALOG, analog->id);
+	// Stop ADC
+	msg.settings.append(message_t::set_t(CTRL_START, 1, 0));
+	// Set data format
+	msg.settings.append(message_t::set_t(CTRL_DATA, 1, analog->scanMode()));
+	// End settings
+	msg.settings.append(message_t::set_t());
 	dev->send(msg);
 
 	analog->init();
 	analog->calculate();
-	analog->update();
+	//analog->update();
 
 	configureTimer();
 	//startADC();
@@ -120,15 +134,11 @@ void Analog::initADC(void)
 
 void Analog::startADC(bool start)
 {
-	message_t msg;
-	msg.command = CMD_ANALOG;
-	msg.id = analog->id;
-	message_t::set_t set;
-	set.id = CTRL_START;
-	set.value = start;
-	set.bytes = 1;
-	msg.settings.append(set);
-	msg.settings.append(message_t::set_t());	// END
+	message_t msg(CMD_ANALOG, analog->id);
+	// Start ADC
+	msg.settings.append(message_t::set_t(CTRL_START, 1, start));
+	// End settings
+	msg.settings.append(message_t::set_t());
 	dev->send(msg);
 
 	analog->buffer.reset();
@@ -136,16 +146,15 @@ void Analog::startADC(bool start)
 
 void Analog::configureTimer(void)
 {
-	message_t msg;
-	msg.command = CMD_TIMER;
-	msg.id = analog->timer.id;
-	message_t::set_t set;
-	set.id = CTRL_SET;
-	set.bytes = analog->timer.bytes();
-	set.value = analog->timer.configure.value;
-	msg.settings.append(set);
-	msg.settings.append(message_t::set_t());	// END
+	message_t msg(CMD_TIMER, analog->timer.id);
+	msg.update.id = analog->id;
+	emit updateAt(msg.sequence);
+	// Set timer period
+	msg.settings.append(message_t::set_t(CTRL_SET, analog->timer.bytes(), analog->timer.configure.value));
+	// End settings
+	msg.settings.append(message_t::set_t());
 	dev->send(msg);
+	//qDebug(tr("[DEBUG] Analog::configureTimer: Message %1").arg(msg.sequence).toLocal8Bit());
 }
 
 void Analog::activate(void)

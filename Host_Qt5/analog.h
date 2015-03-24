@@ -13,7 +13,6 @@ class Analog : public QWidget
 	Q_OBJECT
 public:
 	explicit Analog(Device *dev, analog_t *analog, QWidget *parent = 0);
-	~Analog();
 	void rebuild(analog_t *analog);
 
 signals:
@@ -30,11 +29,14 @@ protected:
 
 private slots:
 	void updateAt(quint32 sequence);
+	void updateChannel(void) {configure(true);}
+	void updateMode(void) {configure(false);}
 
 private:
 	void initADC(void);
 	void startADC(bool start);
 	void configureTimer(void);
+	void configure(bool channel);
 
 	QGridLayout *layout;
 	QGridLayout *channelLayout;

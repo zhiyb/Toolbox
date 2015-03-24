@@ -22,10 +22,6 @@ AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(par
 	this->dev = dev;
 }
 
-AnalogWaveform::~AnalogWaveform()
-{
-}
-
 void AnalogWaveform::setAnalog(analog_t *analog)
 {
 	this->analog = analog;
@@ -155,36 +151,10 @@ void AnalogWaveform::resizeGL(int w, int h)
 {
 	if (init()) {
 		analog->calculate();
-		if (analog->scanMode())
+		if (analog->scanMode() && analog->scanModeConfigure())
 			analog->update();
-		else {
-			message_t msg;
-			msg.command = CMD_ANALOG;
-			msg.id = analog->id;
-			message_t::set_t set;
-			set.id = CTRL_START;				// Stop ADC
-			set.value = 0;
-			set.bytes = 1;
-			msg.settings.append(set);
-			set.id = CTRL_FRAME;				// Set frame(buffer) length per channel
-			set.value = analog->buffer.configure.sizePerChannel;
-			set.bytes = 4;
-			msg.settings.append(set);
-			msg.settings.append(message_t::set_t());	// End settings
-			dev->send(msg);
-
-			msg = message_t();
-			msg.update.id = analog->id;
-			emit updateAt(msg.sequence);
-			msg.command = CMD_TIMER;
-			msg.id = analog->timer.id;
-			set.id = CTRL_SET;				// Set timer
-			set.value = analog->timer.configure.value;
-			set.bytes = analog->timer.bytes();
-			msg.settings.append(set);
-			msg.settings.append(message_t::set_t());	// End settings
-			dev->send(msg);
-		}
+		else
+			emit reset();
 	}
 	glViewport(0, 0, w, h);
 	QSize count = analog->grid.count;
@@ -196,8 +166,8 @@ void AnalogWaveform::resizeGL(int w, int h)
 
 void AnalogWaveform::paintGL(void)
 {
-	analog_t::grid_t::preference_t &pref = analog->grid.preference;
-	glClearColor(pref.bgColour.x(), pref.bgColour.y(), pref.bgColour.z(), pref.bgColour.w());
+	const analog_t::grid_t::configure_t &conf = analog->grid.preference;
+	glClearColor(conf.bgColour.x(), conf.bgColour.y(), conf.bgColour.z(), conf.bgColour.w());
 	QMatrix4x4 mv;
 	//mv.scale(0.5, 0.5, 0.5);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -208,10 +178,10 @@ void AnalogWaveform::paintGL(void)
 	glVertexAttribPointer(grid.location.vertex, 2, GL_FLOAT, GL_TRUE, 0, grid.vertices.constData());
 	glUniformMatrix4fv(grid.location.projection, 1, GL_FALSE, projection.constData());
 	glUniformMatrix4fv(grid.location.modelView, 1, GL_FALSE, mv.constData());
-	glUniform4fv(grid.location.colour, 1, (GLfloat *)&pref.gridColour);
-	glUniform1i(grid.location.pointSize, pref.gridPointSize * 2);
+	glUniform4fv(grid.location.colour, 1, (GLfloat *)&conf.gridColour);
+	glUniform1i(grid.location.pointSize, conf.gridPointSize * 2);
 	glDrawArrays(GL_POINTS, 0, grid.largePoints);
-	glUniform1i(grid.location.pointSize, pref.gridPointSize);
+	glUniform1i(grid.location.pointSize, conf.gridPointSize);
 	glDrawArrays(GL_POINTS, grid.largePoints, grid.vertices.count() - grid.largePoints);
 	glDisableVertexAttribArray(grid.location.vertex);
 

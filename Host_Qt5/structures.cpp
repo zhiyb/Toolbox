@@ -184,3 +184,11 @@ void analog_t::buffer_t::reset(void)
 	position = 0;
 	validSize = 0;
 }
+
+
+void analog_t::trigger_t::update()
+{
+	source = configure.source;
+	level = configure.level;
+	position = configure.position;
+}

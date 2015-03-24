@@ -2,12 +2,15 @@
 
 TimebaseCtrl::TimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGroupBox(parent)
 {
-	setTitle(tr("Timebase"));
 	this->dev = dev;
 	this->analog = analog;
+	setTitle(tr("Timebase"));
+
 	QVBoxLayout *layout = new QVBoxLayout(this);
+
 	scale = new ScaleValue(&analog->timebase.configure.scale, "s");
 	layout->addWidget(scale);
+
 	connect(scale, SIGNAL(valueChanged(float)), this, SLOT(scaleChanged()));
 }
 

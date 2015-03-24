@@ -10,11 +10,11 @@ class AnalogWaveform : public QOpenGLWidget, protected QOpenGLFunctions
 	Q_OBJECT
 public:
 	AnalogWaveform(Device *dev, QWidget *parent);
-	~AnalogWaveform();
 	void setAnalog(analog_t *analog);
 
 signals:
 	void updateAt(quint32 sequence);
+	void reset(void);
 
 protected:
 	void initializeGL();

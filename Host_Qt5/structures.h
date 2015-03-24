@@ -12,6 +12,7 @@ extern quint32 messageCount;
 
 struct message_t {
 	message_t(void) : id(INVALID_ID) {sequence = messageCount++;}
+	message_t(char cmd, quint8 id) : command(cmd), id(id) {sequence = messageCount++;}
 	bool similar(const message_t &msg) const;
 
 	struct update_t {
@@ -24,6 +25,7 @@ struct message_t {
 	quint32 sequence;
 	struct set_t {
 		set_t(void) : id(INVALID_ID), bytes(0), value(0) {}
+		set_t(quint8 id, quint8 bytes, quint32 value) : id(id), bytes(bytes), value(value) {}
 
 		quint8 id, bytes;
 		quint32 value;
@@ -124,6 +126,9 @@ struct analog_t : public info_t, public resolution_t {
 		QString name;
 		bool enabled;
 
+		// Buffer space
+		QVector<quint32> buffer;
+
 		// Configure
 		struct configure_t {
 			QColor colour(void) const {return conv::vector4DToColor(colourData);}
@@ -134,7 +139,6 @@ struct analog_t : public info_t, public resolution_t {
 			QVector4D colourData;
 			scale_t scale;
 		} configure;
-		QVector<quint32> buffer;
 	};
 	QVector<channel_t> channels;
 	hwtimer_t timer;
@@ -146,22 +150,17 @@ struct analog_t : public info_t, public resolution_t {
 		quint32 size;
 
 		// Configure
+		quint32 sizePerChannel;
+
+		// Current
+		quint32 position, validSize;
+
 		struct configure_t {
 			quint32 sizePerChannel;
 		} configure;
-		quint32 sizePerChannel, maximunSize;
-		quint32 position, validSize;
 	} buffer;
 
 	struct grid_t {
-		struct preference_t {
-			preference_t(void) : bgColour(0.f, 0.f, 0.f, 1.f), \
-				gridColour(0.5f, 0.5f, 0.5f, 1.f), gridPointSize(2) {}
-
-			QVector4D bgColour, gridColour;
-			int gridPointSize;
-		} preference;
-
 		static const quint32 preferredPointsPerGrid;
 		static const quint32 minimumPointsPerGrid;
 		static const quint32 maximumVerticalCount;
@@ -169,23 +168,39 @@ struct analog_t : public info_t, public resolution_t {
 
 		quint32 pointsPerGrid;
 		QSize count, displaySize;
+
+		struct configure_t {
+			configure_t(void) : bgColour(0.f, 0.f, 0.f, 1.f), \
+				gridColour(0.5f, 0.5f, 0.5f, 1.f), gridPointSize(2) {}
+
+			QVector4D bgColour, gridColour;
+			int gridPointSize;
+		} preference;
 	} grid;
 
 	struct timebase_t {
 		void update(void) {scale = configure.scale;}
-		//bool scanMode(void) {return scale.value() >= 1;}
 
 		scale_t scale;
 
 		struct configure_t {
-			//bool scanMode(void) {return scale.value() >= 1;}
-
 			scale_t scale;
 		} configure;
 	} timebase;
 
 	struct trigger_t {
-		;
+		void update(void);
+		bool enabled(void) {return source != INVALID_ID;}
+
+		quint8 source;
+		quint32 level, position;
+
+		struct configure_t {
+			bool enabled(void) {return source != INVALID_ID;}
+
+			quint8 source;
+			quint32 level, position;
+		} configure;
 	} trigger;
 
 	struct data_t {
