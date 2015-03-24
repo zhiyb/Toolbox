@@ -149,8 +149,12 @@ void Analog::configureTimer(void)
 
 void Analog::activate(void)
 {
-	show();
-	activateWindow();
+	if (isVisible())
+		hide();
+	else {
+		show();
+		activateWindow();
+	}
 }
 
 void Analog::messageSent(quint32 sequence)

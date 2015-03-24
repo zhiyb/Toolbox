@@ -26,6 +26,7 @@ private slots:
 private:
 	bool init;
 	Device *dev;
+	QVBoxLayout *dispLayout;
 	QHBoxLayout *layout;
 	QGroupBox *gbWaveforms;
 };

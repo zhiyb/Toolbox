@@ -2,6 +2,7 @@
 #define ANALOGCHANNELCTRL_H
 
 #include <QtWidgets>
+#include "colourselection.h"
 #include "structures.h"
 #include "scalevalue.h"
 #include "device.h"
@@ -18,15 +19,18 @@ signals:
 
 public slots:
 	void updateValue(void);
+	void updateColour(void);
 
 private slots:
 	void offsetChanged(void);
 	void scaleChanged(void);
 	void enabledChanged(void);
+	void colourChanged(QColor clr);
 
 private:
 	QDoubleSpinBox *offset;
 	QCheckBox *enabled;
+	ColourSelection *colour;
 	ScaleValue *scale;
 	Device *dev;
 	analog_t *analog;

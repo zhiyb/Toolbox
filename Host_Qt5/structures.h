@@ -4,6 +4,7 @@
 #include <QtWidgets>
 #include <inttypes.h>
 #include <instructions.h>
+#include "conv.h"
 
 #define DEFAULT_CHANNEL_COLOURS	8
 
@@ -125,9 +126,12 @@ struct analog_t : public info_t, public resolution_t {
 
 		// Configure
 		struct configure_t {
+			QColor colour(void) const {return conv::vector4DToColor(colourData);}
+			void setColour(QColor clr) {colourData = conv::colorToVector4D(clr);}
+
 			bool enabled;
 			float displayOffset;
-			QVector4D colour;
+			QVector4D colourData;
 			scale_t scale;
 		} configure;
 		QVector<quint32> buffer;

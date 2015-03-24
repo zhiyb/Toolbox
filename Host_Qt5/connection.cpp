@@ -215,7 +215,7 @@ bool Connection::init(void)
 	type = s->type;
 	switch (type) {
 	case Network:
-		qDebug() << "Connection::Network" << s->host << s->port;
+		qDebug() << "[DEBUG] Connection::Network" << s->host << s->port;
 		con = new QTcpSocket(this);
 		host = QHostAddress(s->host);
 		if (!host.isNull())
@@ -228,7 +228,7 @@ bool Connection::init(void)
 		}
 		break;
 	case SerialPort:
-		qDebug() << "Connection::SerialPort" << s->serialPort << s->serialSpeed;
+		qDebug() << "[DEBUG] Connection::SerialPort" << s->serialPort << s->serialSpeed;
 		con = new QSerialPort(this);
 		serialPort()->setPortName(s->serialPort);
 		serialPort()->setBaudRate(s->serialSpeed);

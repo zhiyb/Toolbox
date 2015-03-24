@@ -25,7 +25,8 @@ SOURCES += main.cpp\
     scalevalue.cpp \
     analogchannelctrl.cpp \
     conv.cpp \
-    timebasectrl.cpp
+    timebasectrl.cpp \
+    colourselection.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -38,7 +39,8 @@ HEADERS  += mainwindow.h \
     scalevalue.h \
     analogchannelctrl.h \
     conv.h \
-    timebasectrl.h
+    timebasectrl.h \
+    colourselection.h
 
 TRANSLATIONS = toolbox_en.ts
 

@@ -40,13 +40,13 @@ bool Device::init(void)
 
 void Device::error(QString str)
 {
-	qWarning(tr("Error: %1").arg(str).toLocal8Bit());
+	qWarning(tr("[ERROR] %1").arg(str).toLocal8Bit());
 	//qApp->quit();
 }
 
 void Device::device(device_t s)
 {
-	qDebug(tr("Device name: %1, firmwave version: %2").arg(s.name).arg(s.version).toLocal8Bit());
+	qDebug(tr("[DEBUG] Device name: %1, firmwave version: %2").arg(s.name).arg(s.version).toLocal8Bit());
 	if (s.version != FW_VERSION) {
 		error(tr("Device firmware version mismatch"));
 		qApp->quit();
@@ -70,23 +70,23 @@ void Device::info(info_t *s)
 
 void Device::controllerInfo(controller_t *s)
 {
-	qDebug(tr("Controller ID: %1, name: %2, controls: %3").arg(s->id).arg(s->name).arg(s->controls.count()).toLocal8Bit());
+	qDebug(tr("[DEBUG] Controller ID: %1, name: %2, controls: %3").arg(s->id).arg(s->name).arg(s->controls.count()).toLocal8Bit());
 	for (int i = 0; i < s->controls.count(); i++) {
 		const controller_t::set_t &set = s->controls.at(i);
-		qDebug(tr("  Control ID: %1, name: %2, type: %3, value: %6").arg(set.id).arg(set.name).arg(set.type).arg(set.value).toLocal8Bit());
+		qDebug(tr("[DEBUG]   Control ID: %1, name: %2, type: %3, value: %6").arg(set.id).arg(set.name).arg(set.type).arg(set.value).toLocal8Bit());
 	}
 	emit controller(s);
 }
 
 void Device::analogInfo(analog_t *s)
 {
-	qDebug(tr("Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, maxFrequency: %5, channels: %6, enabled: %7")\
+	qDebug(tr("[DEBUG] Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, maxFrequency: %5, channels: %6, enabled: %7")\
 	       .arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->maxFrequency).arg(s->channels.count()).arg(s->channelsEnabledConfigure(), 0, 2).toLocal8Bit());
 	for (int i = 0; i < s->channels.count(); i++) {
 		const analog_t::channel_t &channel = s->channels.at(i);
-		qDebug(tr("  Channel ID: %1, name: %2, reference: %3, offset: %4").arg(channel.id).arg(channel.name).arg(channel.reference).arg(channel.offset).toLocal8Bit());
+		qDebug(tr("[DEBUG]   Channel ID: %1, name: %2, reference: %3, offset: %4").arg(channel.id).arg(channel.name).arg(channel.reference).arg(channel.offset).toLocal8Bit());
 	}
-	qDebug(tr("  Buffer size: %1").arg(s->buffer.size).toLocal8Bit());
-	qDebug(tr("  Timer ID: %1, resolution: %2, clock frequency: %3").arg(s->timer.id).arg(s->timer.resolution).arg(s->timer.clockFrequency).toLocal8Bit());
+	qDebug(tr("[DEBUG]   Buffer size: %1").arg(s->buffer.size).toLocal8Bit());
+	qDebug(tr("[DEBUG]   Timer ID: %1, resolution: %2, clock frequency: %3").arg(s->timer.id).arg(s->timer.resolution).arg(s->timer.clockFrequency).toLocal8Bit());
 	emit analog(s);
 }

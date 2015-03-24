@@ -5,9 +5,12 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 	this->dev = dev;
 	this->analog = analog;
 	this->channel = &analog->channels[channelNum];
+
 	QGridLayout *layout = new QGridLayout(this);
+
 	enabled = new QCheckBox(tr("Enabled"));
 	layout->addWidget(enabled, 0, 0);
+
 	offset = new QDoubleSpinBox;
 	offset->setMinimum(-INFINITY);
 	offset->setMaximum(INFINITY);
@@ -15,9 +18,15 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 	offset->setSuffix("V");
 	offset->setMinimumWidth(65);
 	layout->addWidget(offset, 0, 1);
+
+	colour = new ColourSelection(channel->configure.colour());
+	layout->addWidget(colour, 1, 0);
+
 	scale = new ScaleValue(&channel->configure.scale, tr("V/div"));
 	layout->addWidget(scale, 1, 1);
+
 	connect(offset, SIGNAL(valueChanged(double)), this, SLOT(offsetChanged()));
+	connect(colour, SIGNAL(colourChanged(QColor)), this, SLOT(colourChanged(QColor)));
 	connect(scale, SIGNAL(valueChanged(float)), this, SIGNAL(valueChanged()));
 	connect(scale, SIGNAL(valueChanged(float)), this, SLOT(scaleChanged()));
 	connect(enabled, SIGNAL(toggled(bool)), this, SLOT(enabledChanged()));
@@ -31,6 +40,11 @@ void AnalogChannelCtrl::updateValue()
 	offset->setValue(channel->offset);
 	scale->updateValue();
 	scaleChanged();
+}
+
+void AnalogChannelCtrl::updateColour()
+{
+	colour->setColour(channel->configure.colour());
 }
 
 void AnalogChannelCtrl::offsetChanged()
@@ -98,4 +112,9 @@ void AnalogChannelCtrl::enabledChanged()
 	msg.settings.append(message_t::set_t());	// End settings
 	dev->send(msg);
 	//qDebug(tr("AnalogChannelCtrl: message %1").arg(msg.sequence).toLocal8Bit());
+}
+
+void AnalogChannelCtrl::colourChanged(QColor clr)
+{
+	channel->configure.setColour(clr);
 }

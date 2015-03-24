@@ -18,17 +18,18 @@ void ScaleValue::updateValue()
 	setText(tr("- %1%2 +").arg(scale->toString()).arg(unit));
 }
 
-void ScaleValue::mousePressEvent(QMouseEvent *e)
+void ScaleValue::mouseReleaseEvent(QMouseEvent *e)
 {
+	QToolButton::mouseReleaseEvent(e);
+	if (!e->isAccepted())
+		return;
 	if (e->pos().x() < width() / 2) {
 		if (!scale->decrease())
-			goto ret;
+			return;
 	} else {
 		if (!scale->increase())
-			goto ret;
+			return;
 	}
 	updateValue();
 	emit valueChanged(scale->value());
-ret:
-	QToolButton::mousePressEvent(e);
 }

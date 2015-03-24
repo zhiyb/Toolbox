@@ -1,7 +1,8 @@
 #ifndef CONV_H
 #define CONV_H
 
-#include <QtWidgets>
+#include <QColor>
+#include <QVector4D>
 
 namespace conv
 {

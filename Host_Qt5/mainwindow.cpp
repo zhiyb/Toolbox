@@ -7,21 +7,18 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	QWidget *w = new QWidget(this);
 	setCentralWidget(w);
-	layout = new QHBoxLayout(w);
+	QVBoxLayout *vLayout = new QVBoxLayout(w);
+	vLayout->addLayout(dispLayout = new QVBoxLayout, 3);
+	vLayout->addLayout(layout = new QHBoxLayout, 1);
+
 	dev = new Device(this);
 	gbWaveforms = 0;
 	//setWindowTitle(dev->name());
 	setAttribute(Qt::WA_QuitOnClose);
+
 	connect(dev, SIGNAL(deviceNameChanged(QString)), this, SLOT(setWindowTitle(QString)));
 	connect(dev, SIGNAL(controller(controller_t *)), this, SLOT(controller(controller_t *)));
 	connect(dev, SIGNAL(analog(analog_t *)), this, SLOT(analog(analog_t *)));
-#if 0
-	setWindowFlags(Qt::FramelessWindowHint);
-	setAttribute(Qt::WA_TranslucentBackground);
-	QLabel *l = new QLabel(this);
-	setCentralWidget(l);
-	l->setPixmap(QPixmap("2D_.png"));
-#endif
 }
 
 MainWindow::~MainWindow(void)
@@ -74,11 +71,12 @@ void MainWindow::analog(analog_t *s)
 		new QVBoxLayout(gbWaveforms);
 		layout->insertWidget(0, gbWaveforms);
 	}
-	Analog *analogCtrl = gbWaveforms->findChild<Analog *>(QString::number(s->id));
+	Analog *analogCtrl = findChild<Analog *>(QString::number(s->id));
 	if (analogCtrl)
 		analogCtrl->rebuild(s);
 	else {
 		analogCtrl = new Analog(dev, s);
+		dispLayout->addWidget(analogCtrl);
 		analogCtrl->setObjectName(QString::number(s->id));
 		connect(dev, SIGNAL(messageSent(quint32)), analogCtrl, SLOT(messageSent(quint32)));
 	}

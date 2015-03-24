@@ -18,7 +18,7 @@ public slots:
 	void updateValue(void);
 
 protected:
-	void mousePressEvent(QMouseEvent *e);
+	void mouseReleaseEvent(QMouseEvent *e);
 
 private:
 	QString unit;

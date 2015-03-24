@@ -94,7 +94,7 @@ void AnalogWaveform::generateGrid(void)
 void AnalogWaveform::initializeGL(void)
 {
 	initializeOpenGLFunctions();
-	qDebug() << format();
+	qDebug() << "[DEBUG]" << format();
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	//glEnable(GL_POINT_SPRITE);
 	glEnable(GL_MULTISAMPLE);
@@ -254,7 +254,7 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.reference, channel.reference);
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
-			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
+			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colourData);
 			if (analog->scanMode()) {
 				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
 				if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)
