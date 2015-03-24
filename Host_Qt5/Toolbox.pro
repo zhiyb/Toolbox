@@ -26,7 +26,8 @@ SOURCES += main.cpp\
     analogchannelctrl.cpp \
     conv.cpp \
     timebasectrl.cpp \
-    colourselection.cpp
+    colourselection.cpp \
+    analogtriggerctrl.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -40,7 +41,8 @@ HEADERS  += mainwindow.h \
     analogchannelctrl.h \
     conv.h \
     timebasectrl.h \
-    colourselection.h
+    colourselection.h \
+    analogtriggerctrl.h
 
 TRANSLATIONS = toolbox_en.ts
 

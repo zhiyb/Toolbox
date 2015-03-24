@@ -27,7 +27,7 @@ void ColourSelection::mouseReleaseEvent(QMouseEvent *e)
 	QWidget::mouseReleaseEvent(e);
 	//if (!e->isAccepted())
 	//	return;
-	QColor clr = QColorDialog::getColor(this->clr, this);
+	QColor clr = QColorDialog::getColor(this->clr, this, QString());
 	if (!clr.isValid())
 		return;
 	setColour(clr);

@@ -6,6 +6,7 @@
 #include "device.h"
 #include "analogwaveform.h"
 #include "timebasectrl.h"
+#include "analogtriggerctrl.h"
 
 class Analog : public QWidget
 {
@@ -34,13 +35,10 @@ private:
 	void initADC(void);
 	void startADC(bool start);
 	void configureTimer(void);
-	//QGroupBox *buildChannelCtrl(analog_t::channel_t &channel);
-	//QGroupBox *buildTimebaseCtrl(void);
-	QGroupBox *buildTriggerCtrl(void);
 
 	QGridLayout *layout;
 	QGridLayout *channelLayout;
-	QGroupBox *trigger;
+	AnalogTriggerCtrl *trigger;
 	AnalogWaveform *waveform;
 	TimebaseCtrl *timebase;
 	Device *dev;

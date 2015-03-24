@@ -1,6 +1,7 @@
 #include "analog.h"
 #include "analogwaveform.h"
 #include "analogchannelctrl.h"
+#include "analogtriggerctrl.h"
 
 #define CHANNEL_ROW_COUNT	4
 
@@ -66,9 +67,9 @@ void Analog::rebuild(analog_t *analog)
 	setWindowTitle(analog->name);
 	initADC();
 
-	QGroupBox *origTrigger = trigger;
+	AnalogTriggerCtrl *origTrigger = trigger;
 	TimebaseCtrl *origTimebase = timebase;
-	trigger = buildTriggerCtrl();
+	trigger = new AnalogTriggerCtrl(dev, analog);
 	timebase = new TimebaseCtrl(dev, analog);
 	connect(timebase, SIGNAL(updateAt(quint32)), this, SLOT(updateAt(quint32)));
 	if (!origTrigger)
@@ -204,13 +205,4 @@ void Analog::analogData(analog_t::data_t data)
 		break;
 	}
 	waveform->update();
-}
-
-QGroupBox *Analog::buildTriggerCtrl(void)
-{
-	QGroupBox *gb = new QGroupBox(tr("Trigger"));
-	QVBoxLayout *lay = new QVBoxLayout(gb);
-	QLabel *lID = new QLabel(tr("Hello, world!"));
-	lay->addWidget(lID);
-	return gb;
 }
