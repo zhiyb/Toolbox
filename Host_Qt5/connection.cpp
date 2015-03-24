@@ -196,7 +196,7 @@ void Connection::resync()
 
 void Connection::quickResync()
 {
-	writeRepeatedChar(INVALID_ID, 5);
+	writeRepeatedChar(INVALID_ID, 8);
 }
 
 void Connection::requestInfo(void)
@@ -299,10 +299,11 @@ void Connection::writeMessage(message_t &msg)
 send:
 	writeChar(msg.command);
 	waitForWrite();
-	int count = 10;
+	int count = 256;
 	char c = 0;
 	while ((count == -1 || count--) && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
+		qDebug(tr("[DEBUG] Connection::writeMessage: Quick resync").toLocal8Bit());
 		quickResync();
 		goto send;
 	}
@@ -501,7 +502,7 @@ char Connection::readData(int msec)
 	case CMD_ANALOGDATA:
 		emit analogData(readAnalogData());
 		break;
-#if 1
+#if 0
 	case 'V':
 		qDebug(tr("%1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
 		return -1;
@@ -509,7 +510,7 @@ char Connection::readData(int msec)
 	case -1:
 		return -1;
 	default:
-		qDebug(tr("Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+		qDebug(tr("[WARNING] Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
 	count.rxPackage++;
@@ -561,7 +562,7 @@ void Connection::count_t::report(void)
 	if (!elapsed)
 		return;
 	prev = QTime::currentTime();
-	qDebug(tr("Data rate: tx: %1 bytes/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
+	qDebug(tr("[INFO] Data rate: tx: %1 bytes/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
 	       .arg((float)tx / (float)elapsed).arg((float)txPackage / (float)elapsed)\
 	       .arg((float)rx / (float)elapsed).arg((float)rxPackage / (float)elapsed).toLocal8Bit());
 	txPackage = 0;

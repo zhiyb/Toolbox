@@ -129,6 +129,8 @@ void Analog::startADC(bool start)
 	msg.settings.append(set);
 	msg.settings.append(message_t::set_t());	// END
 	dev->send(msg);
+
+	analog->buffer.reset();
 }
 
 void Analog::configureTimer(void)
@@ -141,9 +143,6 @@ void Analog::configureTimer(void)
 	set.bytes = analog->timer.bytes();
 	set.value = analog->timer.configure.value;
 	msg.settings.append(set);
-	/*set.id = CTRL_START;
-	set.value = 1;
-	msg.settings.append(set);*/
 	msg.settings.append(message_t::set_t());	// END
 	dev->send(msg);
 }
@@ -162,18 +161,21 @@ void Analog::messageSent(quint32 sequence)
 	updateSequence = 0;
 	//analog->update();
 	startADC(true);
+	waveform->update();
 }
 
 void Analog::analogData(analog_t::data_t data)
 {
 	if (data.id != analog->id)
 		return;
+	/*if (analog->buffer.validSize == analog->buffer.sizePerChannel)
+		return;*/
 	//qDebug(tr("[%1] Analog data type: %2, count: %3").arg(QTime::currentTime().toString()).arg(data.type).arg(data.data.count()).toLocal8Bit());
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
 		if ((quint32)data.data.count() != analog->channelsCount()) {
-			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
 			return;
 		}
 		for (int i = 0; i < analog->channels.count(); i++)
@@ -187,7 +189,7 @@ void Analog::analogData(analog_t::data_t data)
 		break;
 	case CTRL_FRAME:
 		if ((quint32)data.data.count() != analog->channelsCount() * analog->buffer.sizePerChannel) {
-			qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
 			return;
 		}
 		for (quint32 pos = 0; pos < analog->buffer.sizePerChannel; pos++)

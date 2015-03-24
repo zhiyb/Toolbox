@@ -2,8 +2,8 @@
 
 //#define USE_STENCIL
 #define MINIMUM_SIZE_SQUARE	480
-//#define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
-#define WAVE_YT_DRAW_MODE	GL_POINTS
+#define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
+//#define WAVE_YT_DRAW_MODE	GL_POINTS
 
 AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(parent)
 {
@@ -116,7 +116,7 @@ void AnalogWaveform::initializeGL(void)
 	try {
 		general.program = createProgram(general.vsh, general.fsh);
 		grid.program = createProgram(grid.vsh, general.fsh);
-		wave.programYT = createProgram(wave.vshYT, general.fsh);//glCreateProgram();
+		wave.programYT = createProgram(wave.vshYT, general.fsh);
 	}
 	catch (QString str) {
 		qFatal(tr("Cannot create program:\n%1").arg(str).toLocal8Bit());

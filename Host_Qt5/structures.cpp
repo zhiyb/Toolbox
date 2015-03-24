@@ -112,41 +112,40 @@ void analog_t::init(void)
 
 bool analog_t::calculate(void)
 {
-	qDebug() << "[DEBUG] Analog calculate";
+	//qDebug() << "[DEBUG] Analog calculate";
 	if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value())) {
-		qDebug(QObject::tr("Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
+		qDebug(QObject::tr("[WARNING] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 		timer.configure.value = timer.maximum();
 	}
 	if (!scanModeConfigure()) {
 		quint32 sizePerChannel = buffer.size / channelsCountConfigure();
 		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
-			qDebug(QObject::tr("Analog calculate: Buffer too small").toLocal8Bit());
+			qDebug(QObject::tr("[WARNING] Analog calculate: Buffer too small").toLocal8Bit());
 			return false;
 		}
 		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
 			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
 		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value())) {
-			qDebug(QObject::tr("Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
+			qDebug(QObject::tr("[WARNING] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 			timer.configure.value = timer.maximum();
 		}
 		if (timer.frequencyConfigure() * channelsCountConfigure() >= maxFrequency) {
 			timer.setFrequency((maxFrequency - 1) / channelsCountConfigure());
 			sizePerChannel = gridTotalTimeConfigure() * timer.frequencyConfigure();
 			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
-				qDebug(QObject::tr("Analog calculate: Reached maximum ADC speed").toLocal8Bit());
+				qDebug(QObject::tr("[WARNING] Analog calculate: Reached maximum ADC speed").toLocal8Bit());
 				return false;
 			} else
-				qDebug(QObject::tr("Analog calculate: At maximum ADC speed").toLocal8Bit());
+				qDebug(QObject::tr("[INFO] Analog calculate: At maximum ADC speed").toLocal8Bit());
 		}
 		buffer.configure.sizePerChannel = sizePerChannel;
 	}
-	qDebug() << scanModeConfigure() << channelsCountConfigure() << timer.frequencyConfigure() << timer.configure.value << timebase.configure.scale.value() << buffer.configure.sizePerChannel;
+	//qDebug() << scanModeConfigure() << channelsCountConfigure() << timer.frequencyConfigure() << timer.configure.value << timebase.configure.scale.value() << buffer.configure.sizePerChannel;
 	return true;
 }
 
 void analog_t::update(void)
 {
-	qDebug() << "[DEBUG] Analog update";
 	timer.update();
 	timebase.update();
 	for (int i = 0; i < channels.count(); i++)
@@ -155,10 +154,9 @@ void analog_t::update(void)
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 	else
 		buffer.sizePerChannel = buffer.configure.sizePerChannel;
+	buffer.reset();
 	grid.pointsPerGrid = timer.frequency() * timebase.scale.value();
-	buffer.position = 0;
-	buffer.validSize = 0;
-	qDebug() << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
+	qDebug() << "[DEBUG] Analog update:" << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);
 }
@@ -179,4 +177,10 @@ void analog_t::channel_t::update(const int bufferSize)
 {
 	//enabled = configure.enabled;
 	buffer.resize(bufferSize);
+}
+
+void analog_t::buffer_t::reset(void)
+{
+	position = 0;
+	validSize = 0;
 }

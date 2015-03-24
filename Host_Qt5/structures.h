@@ -136,6 +136,8 @@ struct analog_t : public info_t, public resolution_t {
 	hwtimer_t timer;
 
 	struct buffer_t {
+		void reset(void);
+
 		// Device information
 		quint32 size;
 
