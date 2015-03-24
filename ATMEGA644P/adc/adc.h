@@ -5,7 +5,7 @@
 #include "info.h"
 
 #define CTRL_ADC_ID		0
-#define CTRL_ADC_CHANNELS	4
+#define CTRL_ADC_CHANNELS	8
 #define CTRL_ADC_CHANNELS_BYTES	1
 #define CTRL_ADC_RESOLUTION	8
 #define CTRL_ADC_BYTES		1

@@ -8,11 +8,15 @@
 #include "adc.h"
 
 const static PROGMEM char ch0[] = "CH_0";
+const static PROGMEM char ch1[] = "CH_1";
 const static PROGMEM char ch2[] = "CH_2";
+const static PROGMEM char ch3[] = "CH_3";
 const static PROGMEM char ch4[] = "CH_4";
+const static PROGMEM char ch5[] = "CH_5";
 const static PROGMEM char ch6[] = "CH_6";
-const static PROGMEM PGM_P const channelName[] = {ch0, ch2, ch4, ch6};
-const static PROGMEM uint8_t channels[] = {0, 2, 4, 6};
+const static PROGMEM char ch7[] = "CH_7";
+const static PROGMEM PGM_P const channelName[] = {ch0, ch1, ch2, ch3, ch4, ch5, ch6, ch7};
+const static PROGMEM uint8_t channels[] = {0, 1, 2, 3, 4, 5, 6, 7};
 
 static uint8_t channelSequence[CTRL_ADC_CHANNELS + 1];
 static uint8_t *chSeqCurrent;
