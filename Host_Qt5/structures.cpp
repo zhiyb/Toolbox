@@ -156,7 +156,7 @@ void analog_t::update(void)
 		buffer.sizePerChannel = buffer.configure.sizePerChannel;
 	buffer.reset();
 	grid.pointsPerGrid = timer.frequency() * timebase.scale.value();
-	qDebug() << "[DEBUG] Analog update:" << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
+	//qDebug() << "[DEBUG] Analog update:" << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);
 }

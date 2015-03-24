@@ -299,11 +299,11 @@ void Connection::writeMessage(message_t &msg)
 send:
 	writeChar(msg.command);
 	waitForWrite();
-	int count = 256;
+	int count = 1024;
 	char c = 0;
 	while ((count == -1 || count--) && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
-		qDebug(tr("[DEBUG] Connection::writeMessage: Quick resync").toLocal8Bit());
+		qDebug(tr("[WARNING] Connection::writeMessage: Quick resync").toLocal8Bit());
 		quickResync();
 		goto send;
 	}
@@ -502,9 +502,9 @@ char Connection::readData(int msec)
 	case CMD_ANALOGDATA:
 		emit analogData(readAnalogData());
 		break;
-#if 0
+#if 1
 	case 'V':
-		qDebug(tr("%1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
+		qDebug(tr("[DEBUG] %1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
 		return -1;
 #endif
 	case -1:
