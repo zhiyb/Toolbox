@@ -32,7 +32,7 @@ private slots:
 
 private:
 	void initADC(void);
-	void startADC(bool start = true);
+	void startADC(bool start);
 	void configureTimer(void);
 	//QGroupBox *buildChannelCtrl(analog_t::channel_t &channel);
 	//QGroupBox *buildTimebaseCtrl(void);

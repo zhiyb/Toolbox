@@ -42,7 +42,7 @@ bool Analog::event(QEvent *e)
 void Analog::showEvent(QShowEvent *e)
 {
 	resize(size());
-	startADC();
+	startADC(true);
 	QWidget::showEvent(e);
 }
 
@@ -161,14 +161,14 @@ void Analog::messageSent(quint32 sequence)
 	//qDebug(tr("Analog::messageSent: %1").arg(sequence).toLocal8Bit());
 	updateSequence = 0;
 	//analog->update();
-	startADC();
+	startADC(true);
 }
 
 void Analog::analogData(analog_t::data_t data)
 {
 	if (data.id != analog->id)
 		return;
-	//qDebug(tr("[%1] Analog data type: %2").arg(QTime::currentTime().toString()).arg(data.type).toLocal8Bit());
+	//qDebug(tr("[%1] Analog data type: %2, count: %3").arg(QTime::currentTime().toString()).arg(data.type).arg(data.data.count()).toLocal8Bit());
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:

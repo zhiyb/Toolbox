@@ -1,6 +1,6 @@
 #include "analogwaveform.h"
 
-//#define USE_STENCIL
+#define USE_STENCIL
 #define MINIMUM_SIZE_SQUARE	480
 #define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
 //#define WAVE_YT_DRAW_MODE	GL_POINTS
