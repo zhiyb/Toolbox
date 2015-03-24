@@ -151,10 +151,10 @@ void AnalogWaveform::resizeGL(int w, int h)
 {
 	if (init()) {
 		analog->calculate();
-		if (analog->scanMode() && analog->scanModeConfigure())
+		if (analog->scanMode() && analog->scanMode(true))
 			analog->update();
 		else
-			emit reset();
+			emit updateConfigure();
 	}
 	glViewport(0, 0, w, h);
 	QSize count = analog->grid.count;

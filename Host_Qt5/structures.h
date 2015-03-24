@@ -75,8 +75,7 @@ struct hwtimer_t : public info_t, public resolution_t {
 
 	bool setFrequency(const qreal freq);
 	void update(void) {value = configure.value;}
-	float frequency(void) const {return (float)clockFrequency / (float)value;}
-	float frequencyConfigure(void) const {return (float)clockFrequency / (float)configure.value;}
+	float frequency(bool conf = false) const {return (float)clockFrequency / (float)(conf ? configure.value : value);}
 
 	quint32 clockFrequency;
 	quint32 value;
@@ -105,13 +104,12 @@ struct analog_t : public info_t, public resolution_t {
 	void update(void);
 	qreal gridTotalTime(void) {return timebase.scale.value() * (qreal)grid.count.width();}
 	qreal gridTotalTimeConfigure(void) {return timebase.configure.scale.value() * (qreal)grid.count.width();}
-	quint32 channelsCount(void) const;
-	quint32 channelsCountConfigure(void) const;
+	quint32 channelsCount(bool conf = false) const;
+	bool channelEnabled(int i, bool conf = false) const {return conf ? (channels.at(i).configure.enabled || channels.at(i).id == trigger.configure.source) : (channels.at(i).enabled || channels.at(i).id == trigger.source);}
 	void setChannelsEnabled(quint32 enabled);
-	quint32 channelsEnabledConfigure(void) const;
+	quint32 channelsEnabled(bool conf = false) const;
 	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
-	bool scanMode(void) const {return timer.frequency() * channelsCount() < scanFrequency;}
-	bool scanModeConfigure(void) const {return timer.frequencyConfigure() * channelsCountConfigure() < scanFrequency;}
+	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;

@@ -31,4 +31,7 @@ void AnalogTriggerCtrl::sourceChanged(int idx)
 		return;
 	}
 	analog->trigger.configure.source = idx == 0 ? INVALID_ID : analog->channels.at(idx - 1).id;
+	if (idx == 0 || analog->trigger.source == analog->trigger.configure.source)
+		return;
+	emit updateTrigger();
 }

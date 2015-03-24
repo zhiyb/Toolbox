@@ -49,7 +49,7 @@ void AnalogChannelCtrl::updateColour(void)
 void AnalogChannelCtrl::offsetChanged(void)
 {
 	channel->offset = offset->value();
-	emit reset();
+	emit updateDisplay();
 }
 
 void AnalogChannelCtrl::scaleChanged(void)
@@ -62,7 +62,7 @@ void AnalogChannelCtrl::scaleChanged(void)
 		offset->setSingleStep(0.01);
 	else
 		offset->setSingleStep(0.001);
-	emit reset();
+	emit updateDisplay();
 }
 
 void AnalogChannelCtrl::enabledChanged(void)
@@ -74,11 +74,11 @@ void AnalogChannelCtrl::enabledChanged(void)
 		updateValue();
 		return;
 	}
-	emit changed();
+	emit updateConfigure();
 }
 
 void AnalogChannelCtrl::colourChanged(QColor clr)
 {
 	channel->configure.setColour(clr);
-	emit reset();
+	emit updateDisplay();
 }

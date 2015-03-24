@@ -28,15 +28,15 @@ protected:
 	void hideEvent(QHideEvent *e);
 
 private slots:
-	void updateAt(quint32 sequence);
-	void updateChannel(void) {configure(true);}
-	void updateMode(void) {configure(false);}
+	void updateConfigure(void);
+	void updateTriggerSettings(void) {}
+	void updateTimer(void);
 
 private:
 	void initADC(void);
 	void startADC(bool start);
-	void configureTimer(void);
-	void configure(bool channel);
+	void updateAt(quint32 sequence);
+	bool timerUpdateRequired(void) {return analog->timer.value != analog->timer.configure.value;}
 
 	QGridLayout *layout;
 	QGridLayout *channelLayout;

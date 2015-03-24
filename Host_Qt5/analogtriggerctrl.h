@@ -11,6 +11,10 @@ class AnalogTriggerCtrl : public QGroupBox
 public:
 	explicit AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *parent = 0);
 
+signals:
+	void updateTrigger(void);
+	void updateTriggerSettings(void);
+
 private slots:
 	void sourceChanged(int idx);
 

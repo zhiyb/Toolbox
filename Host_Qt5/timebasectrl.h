@@ -14,7 +14,8 @@ public:
 	~TimebaseCtrl();
 
 signals:
-	void updateAt(quint32 sequence);
+	void updateConfigure(void);
+	void updateDisplay(void);
 
 public slots:
 

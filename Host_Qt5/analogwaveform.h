@@ -13,8 +13,7 @@ public:
 	void setAnalog(analog_t *analog);
 
 signals:
-	void updateAt(quint32 sequence);
-	void reset(void);
+	void updateConfigure(void);
 
 protected:
 	void initializeGL();

@@ -69,19 +69,11 @@ QString scale_t::toString(const qreal value)
 	return QString(units[unit]).arg(v);
 }
 
-quint32 analog_t::channelsCount(void) const
+quint32 analog_t::channelsCount(bool conf) const
 {
 	quint32 count = 0;
 	for (int i = 0; i < channels.count(); i++)
-		count += channels.at(i).enabled;
-	return count;
-}
-
-quint32 analog_t::channelsCountConfigure() const
-{
-	quint32 count = 0;
-	for (int i = 0; i < channels.count(); i++)
-		count += channels.at(i).configure.enabled;
+		count += channelEnabled(i, conf);
 	return count;
 }
 
@@ -94,11 +86,11 @@ void analog_t::setChannelsEnabled(quint32 enabled)
 	}
 }
 
-quint32 analog_t::channelsEnabledConfigure(void) const
+quint32 analog_t::channelsEnabled(bool conf) const
 {
 	quint32 enabled = 0, mask = 1;
 	for (int i = 0; i < channels.count(); i++) {
-		if (channels.at(i).configure.enabled)
+		if (channelEnabled(i, conf))
 			enabled |= mask;
 		mask <<= 1;
 	}
@@ -117,8 +109,8 @@ bool analog_t::calculate(void)
 		qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 		timer.configure.value = timer.maximum();
 	}
-	if (!scanModeConfigure()) {
-		quint32 sizePerChannel = buffer.size / channelsCountConfigure();
+	if (!scanMode(true)) {
+		quint32 sizePerChannel = buffer.size / channelsCount(true);
 		if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
 			qDebug(QObject::tr("[WARNING] Analog calculate: Buffer too small").toLocal8Bit());
 			return false;
@@ -129,9 +121,9 @@ bool analog_t::calculate(void)
 			qDebug(QObject::tr("[INFO] Analog calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 			timer.configure.value = timer.maximum();
 		}
-		if (timer.frequencyConfigure() * channelsCountConfigure() >= maxFrequency) {
-			timer.setFrequency((maxFrequency - 1) / channelsCountConfigure());
-			sizePerChannel = gridTotalTimeConfigure() * timer.frequencyConfigure();
+		if (timer.frequency(true) * channelsCount(true) >= maxFrequency) {
+			timer.setFrequency((maxFrequency - 1) / channelsCount(true));
+			sizePerChannel = gridTotalTimeConfigure() * timer.frequency(true);
 			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
 				qDebug(QObject::tr("[WARNING] Analog calculate: Reached maximum ADC speed").toLocal8Bit());
 				return false;
