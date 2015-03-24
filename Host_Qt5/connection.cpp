@@ -15,7 +15,7 @@
 #define DEFAULT_NETWORK_HOST	"192.168.6.48"
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
-#define DEFAULT_SERIAL_SPEED	BAUD
+#define DEFAULT_SERIAL_BAUD	UART_BAUD
 #define DATA_RATE_AVERAGE	5	// Need to be divisible by 60
 
 ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
@@ -24,7 +24,7 @@ ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
 	host = DEFAULT_NETWORK_HOST;
 	port = DEFAULT_NETWORK_PORT;
 	serialPort = DEFAULT_SERIAL_PORT;
-	serialSpeed = DEFAULT_SERIAL_SPEED;
+	serialSpeed = DEFAULT_SERIAL_BAUD;
 
 	QVBoxLayout *vLayout = new QVBoxLayout(this);
 	QHBoxLayout *hTypeLayout = new QHBoxLayout, *hSettingsLayout = new QHBoxLayout, *hButtonLayout = new QHBoxLayout;
@@ -92,7 +92,7 @@ void ConnectionSelection::normalize(void)
 		if (tmpHost.isEmpty())
 			tmpHost = DEFAULT_SERIAL_PORT;
 		if (!ok || tmpPort <= 0)
-			tmpPort = DEFAULT_SERIAL_SPEED;
+			tmpPort = DEFAULT_SERIAL_BAUD;
 		serialPort = tmpHost;
 		serialSpeed = tmpPort;
 		break;
