@@ -30,7 +30,6 @@ void init(void)
 void reset(void)
 {
 	resetADC();
-	stopTimer0();
 }
 
 int main(void)
