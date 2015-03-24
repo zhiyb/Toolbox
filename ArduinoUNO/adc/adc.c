@@ -60,6 +60,11 @@ void resetADC(void)
 	stopADC();
 }
 
+static inline void pauseADC(void)
+{
+	stopTimer0();
+}
+
 static inline void resumeADC(void)
 {
 	TIFR0 |= _BV(OCF0A);
@@ -89,17 +94,16 @@ static void startADC(void)
 		adcBufferCurrent = adcBufferStart = adcTxBuffer + ADC_PREPEND_BYTES;
 		adcBufferEnd = adcBufferStart + adcBufferCount * CTRL_ADC_BYTES;
 	}
+	pauseADC();
+	while (ADCSRA & _BV(ADSC));
+	ADCSRA |= _BV(ADIE);
 	resumeADC();
-}
-
-static inline void pauseADC(void)
-{
-	stopTimer0();
 }
 
 static inline void stopADC(void)
 {
 	pauseADC();
+	ADCSRA &= ~(_BV(ADSC) | _BV(ADIE));
 	adcTxBufferRequest = 0;
 }
 
