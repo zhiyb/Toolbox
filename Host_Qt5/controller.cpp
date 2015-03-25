@@ -47,14 +47,14 @@ void Controller::valueChanged(void)
 		case CTRL_BYTE4: {
 			QLabel *l = findChild<QLabel *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
 			if (!l) {
-				qWarning(tr("QLabel not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+				qWarning(tr("[WARNING] QLabel not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
 				continue;
 			}
 			quint32 current = l->text().mid(l->text().lastIndexOf(':') + 1).toLong();
 			if (!set.readOnly()) {
-				QSlider *s = findChild<QSlider *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
+				QDial *s = findChild<QDial *>(QString::number(set.id), Qt::FindDirectChildrenOnly);
 				if (!s) {
-					qWarning(tr("QSlider not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
+					qWarning(tr("[WARNING] QDial not found for %1 at %2: %3").arg(set.id).arg(__FILE__).arg(__LINE__).toLocal8Bit());
 					continue;
 				}
 				if (set.value != current)
@@ -100,7 +100,7 @@ void Controller::rebuild(controller_t *s)
 			l->setObjectName(QString::number(set.id));
 			lay->addWidget(l, 0, Qt::AlignHCenter);
 			if (!set.readOnly()) {
-				QSlider *s = new QSlider(Qt::Vertical);
+				QDial *s = new QDial;
 				s->setObjectName(QString::number(set.id));
 				s->setMinimum(set.min);
 				s->setMaximum(set.max);
