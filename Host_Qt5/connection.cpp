@@ -138,75 +138,6 @@ Connection::~Connection(void)
 	}
 }
 
-void Connection::waitForWrite(int msec)
-{
-	while (con->bytesToWrite() > 0)
-		con->waitForBytesWritten(msec);
-}
-
-void Connection::waitForRead(const qint64 size, int msec)
-{
-	qint64 avail = 0;
-	while (true) {
-		if ((avail = con->bytesAvailable()) >= size)
-			return;
-		con->waitForReadyRead(msec);
-		if (avail == con->bytesAvailable())
-			return;
-	}
-}
-
-bool Connection::waitForReadAll(int count, int msec)
-{
-	while ((count == -1 || count--) && con->waitForReadyRead(msec));
-	return count != 0;
-}
-
-void Connection::writeChar(const char c)
-{
-	con->write(&c, 1);
-	//qDebug(tr("[DEBUG] Connection::writeChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
-	count.tx++;
-}
-
-void Connection::writeRepeatedChar(const char c, const qint64 size)
-{
-	for (qint64 i = 0; i != size; i++)
-		writeChar(c);
-}
-
-bool Connection::reset(void)
-{
-	//qDebug() << "Connection::reset";
-	resync();
-	writeRepeatedChar(CMD_RESET, 16);
-	waitForWrite();
-	waitForReadAll(3);
-	QByteArray data = con->readAll();
-	if (!data.endsWith(CMD_ACK)) {
-		emit error(tr("Reset error, no acknowledge received: ") + data);
-		return false;
-	}
-	return true;
-}
-
-void Connection::resync()
-{
-	writeRepeatedChar(INVALID_ID, 16);
-}
-
-void Connection::quickResync()
-{
-	writeRepeatedChar(INVALID_ID, 8);
-}
-
-void Connection::requestInfo(void)
-{
-	struct message_t msg;
-	msg.command = CMD_INFO;
-	enqueue(msg);
-}
-
 bool Connection::init(void)
 {
 	QHostAddress host;
@@ -245,6 +176,43 @@ bool Connection::init(void)
 	return reset();
 }
 
+void Connection::waitForWrite(int msec)
+{
+	while (con->bytesToWrite() > 0)
+		con->waitForBytesWritten(msec);
+}
+
+void Connection::waitForRead(const qint64 size, int msec)
+{
+	qint64 avail = 0;
+	while (true) {
+		if ((avail = con->bytesAvailable()) >= size)
+			return;
+		con->waitForReadyRead(msec);
+		if (avail == con->bytesAvailable())
+			return;
+	}
+}
+
+bool Connection::waitForReadAll(int count, int msec)
+{
+	while ((count == -1 || count--) && con->waitForReadyRead(msec));
+	return count != 0;
+}
+
+void Connection::writeChar(const char c)
+{
+	con->write(&c, 1);
+	//qDebug(tr("[DEBUG] Connection::writeChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
+	count.tx++;
+}
+
+void Connection::writeRepeatedChar(const char c, const qint64 size)
+{
+	for (qint64 i = 0; i != size; i++)
+		writeChar(c);
+}
+
 void Connection::write(QByteArray &data)
 {
 	con->write(data);
@@ -265,6 +233,7 @@ int Connection::readChar(int msec)
 	if (con->bytesAvailable() < 1)
 		return -1;
 	con->read(&c, 1);
+	//qDebug(tr("[DEBUG] Connection::readChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
 	/*if (c == CMD_ACK)
 		qDebug("ACK");*/
 	count.rx++;
@@ -279,13 +248,13 @@ quint32 Connection::readValue(const quint32 bytes, int msec)
 		return -1;
 	con->read((char *)&value, bytes);
 	count.rx += bytes;
-	//qDebug() << "Connection::readValue" << bytes << msec << value;
+	//qDebug(tr("[DEBUG] Connection::readValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
 	return value;
 }
 
 QString Connection::readString(int msec)
 {
-	char c;
+	int c;
 	QString str;
 	forever {
 		c = readChar(msec);
@@ -298,7 +267,7 @@ QString Connection::readString(int msec)
 
 void Connection::writeMessage(message_t &msg)
 {
-	//qDebug(tr("[DEBUG] Sending message, sequence: %1, command: %2, id: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
+	//qDebug(tr("[DEBUG] Sending message, sequence: %1, command: %2, ID: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
 	//quickResync();
 send:
 	writeChar(msg.command);
@@ -338,6 +307,36 @@ send:
 		}
 	}
 	emit messageSent(msg.sequence);
+}
+
+bool Connection::reset(void)
+{
+	//qDebug() << "Connection::reset";
+	resync();
+	writeRepeatedChar(CMD_RESET, 16);
+	waitForWrite();
+	waitForReadAll(3);
+	QByteArray data = con->readAll();
+	if (!data.endsWith(CMD_ACK)) {
+		emit error(tr("Reset error, no acknowledge received: ") + data);
+		return false;
+	}
+	return true;
+}
+
+void Connection::resync()
+{
+	writeRepeatedChar(INVALID_ID, 16);
+}
+
+void Connection::quickResync()
+{
+	writeRepeatedChar(INVALID_ID, 8);
+}
+
+void Connection::requestInfo(void)
+{
+	enqueue(message_t(CMD_INFO, INVALID_ID));
 }
 
 void Connection::pushInfo(info_t *s)
