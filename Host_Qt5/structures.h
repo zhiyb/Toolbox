@@ -87,14 +87,23 @@ struct hwtimer_t : public info_t, public resolution_t {
 
 struct scale_t {
 	scale_t(void) : base(10), divide(10), seq(0) {}
-	qreal value(void) const {return (qreal)1 / divide * base * factor[seq];}
+	qreal value(void) const {return (qreal)1.f / (qreal)divide * (qreal)base * (qreal)factor[seq];}
 	QString toString(void) const {return toString(this->value());}
 	static QString toString(const qreal value);
 	bool decrease(void);
 	bool increase(void);
+	bool operator==(const scale_t &s) const {return base == s.base && divide == s.divide && seq == s.seq;}
+	bool operator!=(const scale_t &s) const {return !(*this == s);}
 
 	static const qreal factor[3];
 	quint32 base, divide, seq;
+};
+
+struct colour_t : QVector4D {
+	colour_t(const QVector4D &clr = QVector4D()) : QVector4D(clr) {}
+	colour_t(const QColor &clr) {*this = clr;}
+	colour_t& operator=(const QColor &clr) {return *this = conv::colorToVector4D(clr);}
+	operator QColor(void) {return conv::vector4DToColor(*this);}
 };
 
 struct analog_t : public info_t, public resolution_t {
@@ -110,9 +119,11 @@ struct analog_t : public info_t, public resolution_t {
 	quint32 channelsEnabled(bool conf = false) const;
 	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
 	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
+	bool updateRequired(void) const;
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
+
 	struct channel_t {
 		channel_t(void);
 		void update(const int bufferSize);
@@ -129,20 +140,21 @@ struct analog_t : public info_t, public resolution_t {
 
 		// Configure
 		struct configure_t {
-			QColor colour(void) const {return conv::vector4DToColor(colourData);}
-			void setColour(QColor clr) {colourData = conv::colorToVector4D(clr);}
-
 			bool enabled;
-			float displayOffset;
-			QVector4D colourData;
+			qreal displayOffset;
+			colour_t colour;
 			scale_t scale;
 		} configure;
 	};
 	QVector<channel_t> channels;
+	channel_t *findChannel(quint8 id);
+	const channel_t *findChannel(quint8 id) const;
+
 	hwtimer_t timer;
 
 	struct buffer_t {
 		void reset(void);
+		bool updateRequired(void) const {return sizePerChannel != configure.sizePerChannel;}
 
 		// Device information
 		quint32 size;
@@ -159,6 +171,8 @@ struct analog_t : public info_t, public resolution_t {
 	} buffer;
 
 	struct grid_t {
+		grid_t(void) : gridPointSize(2), bgColour(Qt::black), gridColour(Qt::gray) {}
+
 		static const quint32 preferredPointsPerGrid;
 		static const quint32 minimumPointsPerGrid;
 		static const quint32 maximumVerticalCount;
@@ -167,17 +181,14 @@ struct analog_t : public info_t, public resolution_t {
 		quint32 pointsPerGrid;
 		QSize count, displaySize;
 
-		struct configure_t {
-			configure_t(void) : bgColour(0.f, 0.f, 0.f, 1.f), \
-				gridColour(0.5f, 0.5f, 0.5f, 1.f), gridPointSize(2) {}
-
-			QVector4D bgColour, gridColour;
-			int gridPointSize;
-		} preference;
+		// Preference
+		int gridPointSize;
+		colour_t bgColour, gridColour;
 	} grid;
 
 	struct timebase_t {
 		void update(void) {scale = configure.scale;}
+		bool updateRequired(void) const {return scale != configure.scale;}
 
 		scale_t scale;
 
@@ -187,17 +198,26 @@ struct analog_t : public info_t, public resolution_t {
 	} timebase;
 
 	struct trigger_t {
+		trigger_t(void) : view(false) {update();}
 		void update(void);
-		bool enabled(void) {return source != INVALID_ID;}
+		bool enabled(void) const {return source != INVALID_ID;}
+		bool updateRequired(void) const;
 
+		bool view;
 		quint8 source;
-		quint32 level, position;
+		quint32 level;
+		qint32 position;
 
 		struct configure_t {
-			bool enabled(void) {return source != INVALID_ID;}
+			configure_t(void) : source(INVALID_ID), dispLevel(0), dispPosition(0), colour(Qt::blue) {}
+			bool enabled(void) const {return source != INVALID_ID;}
 
 			quint8 source;
-			quint32 level, position;
+			qreal dispLevel, dispPosition;
+			colour_t colour;
+
+			// Cache
+			qint32 level, position;
 		} configure;
 	} trigger;
 

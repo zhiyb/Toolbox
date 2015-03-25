@@ -20,7 +20,7 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 	offset->setMinimumWidth(65);
 	layout->addWidget(offset, 0, 1);
 
-	colour = new ColourSelection(channel->configure.colour());
+	colour = new ColourSelection(channel->configure.colour);
 	layout->addWidget(colour, 1, 0);
 
 	scale = new ScaleValue(&channel->configure.scale, tr("V/div"));
@@ -43,13 +43,13 @@ void AnalogChannelCtrl::updateValue(void)
 
 void AnalogChannelCtrl::updateColour(void)
 {
-	colour->setColour(channel->configure.colour());
+	colour->setColour(channel->configure.colour);
 }
 
 void AnalogChannelCtrl::offsetChanged(void)
 {
 	channel->offset = offset->value();
-	emit updateDisplay();
+	emit updateRequest();
 }
 
 void AnalogChannelCtrl::scaleChanged(void)
@@ -62,7 +62,7 @@ void AnalogChannelCtrl::scaleChanged(void)
 		offset->setSingleStep(0.01);
 	else
 		offset->setSingleStep(0.001);
-	emit updateDisplay();
+	emit updateRequest();
 }
 
 void AnalogChannelCtrl::enabledChanged(void)
@@ -74,11 +74,11 @@ void AnalogChannelCtrl::enabledChanged(void)
 		updateValue();
 		return;
 	}
-	emit updateConfigure();
+	emit updateRequest();
 }
 
 void AnalogChannelCtrl::colourChanged(QColor clr)
 {
-	channel->configure.setColour(clr);
-	emit updateDisplay();
+	channel->configure.colour = clr;
+	emit updateRequest();
 }

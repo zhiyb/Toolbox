@@ -14,8 +14,7 @@ public:
 	explicit AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 channelNum, QWidget *parent = 0);
 
 signals:
-	void updateDisplay(void);
-	void updateConfigure(void);
+	void updateRequest(void);
 
 public slots:
 	void updateValue(void);

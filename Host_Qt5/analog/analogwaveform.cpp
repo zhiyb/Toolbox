@@ -85,7 +85,7 @@ void AnalogWaveform::generateGrid(void)
 				float y = 2.f * i / count.height() + 2.f / count.height() * j / 5.f - 1.f;
 				grid.vertices.append(QVector2D(2.f * x / count.width() - 1.f, y));
 			}
-	analog->grid.preference.gridPointSize = analog->grid.displaySize.height() / count.height() / 2 / 15;
+	analog->grid.gridPointSize = analog->grid.displaySize.height() / count.height() / 2 / 15;
 }
 
 void AnalogWaveform::initializeGL(void)
@@ -167,8 +167,7 @@ void AnalogWaveform::resizeGL(int w, int h)
 
 void AnalogWaveform::paintGL(void)
 {
-	const analog_t::grid_t::configure_t &conf = analog->grid.preference;
-	glClearColor(conf.bgColour.x(), conf.bgColour.y(), conf.bgColour.z(), conf.bgColour.w());
+	glClearColor(analog->grid.bgColour.x(), analog->grid.bgColour.y(), analog->grid.bgColour.z(), analog->grid.bgColour.w());
 	QMatrix4x4 mv;
 	//mv.scale(0.5, 0.5, 0.5);
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -179,10 +178,10 @@ void AnalogWaveform::paintGL(void)
 	glVertexAttribPointer(grid.location.vertex, 2, GL_FLOAT, GL_TRUE, 0, grid.vertices.constData());
 	glUniformMatrix4fv(grid.location.projection, 1, GL_FALSE, projection.constData());
 	glUniformMatrix4fv(grid.location.modelView, 1, GL_FALSE, mv.constData());
-	glUniform4fv(grid.location.colour, 1, (GLfloat *)&conf.gridColour);
-	glUniform1i(grid.location.pointSize, conf.gridPointSize * 2);
+	glUniform4fv(grid.location.colour, 1, (GLfloat *)&analog->grid.gridColour);
+	glUniform1i(grid.location.pointSize, analog->grid.gridPointSize * 2);
 	glDrawArrays(GL_POINTS, 0, grid.largePoints);
-	glUniform1i(grid.location.pointSize, conf.gridPointSize);
+	glUniform1i(grid.location.pointSize, analog->grid.gridPointSize);
 	glDrawArrays(GL_POINTS, grid.largePoints, grid.vertices.count() - grid.largePoints);
 	glDisableVertexAttribArray(grid.location.vertex);
 
@@ -225,7 +224,7 @@ void AnalogWaveform::paintGL(void)
 			glUniform1f(wave.locationYT.reference, channel.reference);
 			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
-			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colourData);
+			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
 			if (analog->scanMode()) {
 				glDrawArrays(WAVE_YT_DRAW_MODE, 0, analog->buffer.position);
 				if (analog->buffer.validSize - analog->buffer.position - analog->grid.pointsPerGrid / 5 > 0)

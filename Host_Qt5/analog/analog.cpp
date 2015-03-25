@@ -89,7 +89,8 @@ void Analog::updateConfigure(void)
 		updateAt(msg.sequence);
 		dev->send(msg);
 	} else {
-		analog->update();
+		if (analog->updateRequired())
+			analog->update();
 		waveform->update();
 	}
 	//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
@@ -126,8 +127,7 @@ void Analog::rebuild(analog_t *analog)
 	for (int i = 0; i < analog->channels.count(); i++) {
 		AnalogChannelCtrl *ctrl = new AnalogChannelCtrl(dev, analog, i);
 		channelLayout->addWidget(ctrl, i % CHANNEL_ROW_COUNT, i / CHANNEL_ROW_COUNT);
-		connect(ctrl, SIGNAL(updateDisplay()), waveform, SLOT(update()));
-		connect(ctrl, SIGNAL(updateConfigure()), this, SLOT(updateConfigure()));
+		connect(ctrl, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	}
 }
 
