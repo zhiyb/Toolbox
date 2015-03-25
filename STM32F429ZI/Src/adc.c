@@ -153,7 +153,6 @@ void ctrlADCControllerGenerate(void)
 	sendValue(channelEnabled, CTRL_ADC_CHANNELS_BYTES);
 	sendValue(ADC_BUFFER_SIZE / CTRL_ADC_BYTES, 4);	// ADC conversion buffer size
 	ctrlTimerControllerGenerate(ADC_TIMER);	// ADC trigger timer information
-	sendChar(CMD_END);			// End settings
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
