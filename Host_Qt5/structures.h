@@ -89,7 +89,7 @@ struct scale_t {
 	scale_t(void) : base(10), divide(10), seq(0) {}
 	qreal value(void) const {return (qreal)1.f / (qreal)divide * (qreal)base * (qreal)factor[seq];}
 	QString toString(void) const {return toString(this->value());}
-	static QString toString(const qreal value);
+	static QString toString(const qreal value, bool prec = false);
 	bool decrease(void);
 	bool increase(void);
 	bool operator==(const scale_t &s) const {return base == s.base && divide == s.divide && seq == s.seq;}

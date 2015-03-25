@@ -27,7 +27,8 @@ SOURCES += main.cpp\
     common/colourselection.cpp \
     common/scalevalue.cpp \
     analog/timebasectrl.cpp \
-    common/conv.cpp
+    common/conv.cpp \
+    common/dial.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -42,7 +43,8 @@ HEADERS  += mainwindow.h \
     common/colourselection.h \
     common/scalevalue.h \
     analog/timebasectrl.h \
-    common/conv.h
+    common/conv.h \
+    common/dial.h
 
 TRANSLATIONS = toolbox_en.ts
 

@@ -4,6 +4,7 @@
 #include <QtWidgets>
 #include "device.h"
 #include "structures.h"
+#include "dial.h"
 
 class AnalogTriggerCtrl : public QGroupBox
 {
@@ -17,12 +18,15 @@ signals:
 
 private slots:
 	void sourceChanged(int idx);
+	void levelChanged(float frac);
+	void levelReset(void);
 
 private:
 	void reset(void);
 
 	QComboBox *source;
-	//ScaleValue *scale;
+	QLabel *lLevel;
+	Dial *dLevel;
 	Device *dev;
 	analog_t *analog;
 };

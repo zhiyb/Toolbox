@@ -9,24 +9,14 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 
 	QGridLayout *layout = new QGridLayout(this);
 
-	enabled = new QCheckBox(tr("Enabled"));
-	layout->addWidget(enabled, 0, 0);
+	layout->addWidget(enabled = new QCheckBox(tr("Enabled")), 0, 0);
+	layout->addWidget(lOffset = new QLabel, 0, 1);
+	layout->addWidget(offset = new Dial, 1, 1, 2, 1);
+	layout->addWidget(colour = new ColourSelection(channel->configure.colour), 1, 0);
+	layout->addWidget(scale = new ScaleValue(&channel->configure.scale, tr("V/div")), 2, 0);
 
-	offset = new QDoubleSpinBox;
-	offset->setMinimum(-INFINITY);
-	offset->setMaximum(INFINITY);
-	offset->setDecimals(3);
-	offset->setSuffix("V");
-	offset->setMinimumWidth(65);
-	layout->addWidget(offset, 0, 1);
-
-	colour = new ColourSelection(channel->configure.colour);
-	layout->addWidget(colour, 1, 0);
-
-	scale = new ScaleValue(&channel->configure.scale, tr("V/div"));
-	layout->addWidget(scale, 1, 1);
-
-	connect(offset, SIGNAL(valueChanged(double)), this, SLOT(offsetChanged()));
+	connect(offset, SIGNAL(moved(float)), this, SLOT(offsetMoved(float)));
+	connect(offset, SIGNAL(rightClicked()), this, SLOT(offsetReset()));
 	connect(colour, SIGNAL(colourChanged(QColor)), this, SLOT(colourChanged(QColor)));
 	connect(scale, SIGNAL(valueChanged(float)), this, SLOT(scaleChanged()));
 	connect(enabled, SIGNAL(toggled(bool)), this, SLOT(enabledChanged()));
@@ -36,8 +26,8 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 void AnalogChannelCtrl::updateValue(void)
 {
 	enabled->setChecked(channel->configure.enabled = channel->enabled);
-	offset->setValue(channel->offset);
 	scale->updateValue();
+	updateOffset();
 	scaleChanged();
 }
 
@@ -46,22 +36,24 @@ void AnalogChannelCtrl::updateColour(void)
 	colour->setColour(channel->configure.colour);
 }
 
-void AnalogChannelCtrl::offsetChanged(void)
+void AnalogChannelCtrl::offsetReset()
 {
-	channel->offset = offset->value();
+	offset->reset();
+	channel->offset = 0;
+	updateOffset();
+	emit updateRequest();
+}
+
+void AnalogChannelCtrl::offsetMoved(float frac)
+{
+	qreal step = channel->configure.scale.value() * (qreal)analog->grid.count.height() / 2.f / 2.f;
+	channel->offset += step * frac;
+	updateOffset();
 	emit updateRequest();
 }
 
 void AnalogChannelCtrl::scaleChanged(void)
 {
-	if (channel->configure.scale.value() >= 10)
-		offset->setSingleStep(1);
-	else if (channel->configure.scale.value() >= 1)
-		offset->setSingleStep(0.1);
-	else if (channel->configure.scale.value() >= 0.1)
-		offset->setSingleStep(0.01);
-	else
-		offset->setSingleStep(0.001);
 	emit updateRequest();
 }
 
@@ -81,4 +73,9 @@ void AnalogChannelCtrl::colourChanged(QColor clr)
 {
 	channel->configure.colour = clr;
 	emit updateRequest();
+}
+
+void AnalogChannelCtrl::updateOffset()
+{
+	lOffset->setText(tr("%1V").arg(scale_t::toString(channel->offset, true)));
 }

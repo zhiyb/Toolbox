@@ -57,7 +57,7 @@ bool scale_t::decrease(void)
 	 return true;
 }
 
-QString scale_t::toString(const qreal value)
+QString scale_t::toString(const qreal value, bool prec)
 {
 	const QString units[] = {"%1", "%1m", "%1μ", "%1n", "%1p"};
 	quint32 unit = 0;
@@ -66,7 +66,10 @@ QString scale_t::toString(const qreal value)
 		v *= 1000;
 	if (unit >= sizeof(units) / sizeof(units[0]))
 		return QString(units[0]).arg(0);
-	return QString(units[unit]).arg(v);
+	if (prec)
+		return QString(units[unit]).arg(v, 0, 'f', 3);
+	else
+		return QString(units[unit]).arg(v);
 }
 
 quint32 analog_t::channelsCount(bool conf) const

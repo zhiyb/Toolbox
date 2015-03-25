@@ -1,4 +1,5 @@
 #include "analogtriggerctrl.h"
+#include "dial.h"
 
 AnalogTriggerCtrl::AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGroupBox(parent)
 {
@@ -16,12 +17,13 @@ AnalogTriggerCtrl::AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *par
 		source->addItem(tr("%2/%1").arg(channel.name).arg(channel.id));
 	}
 	layout->addWidget(source);
-
-	QLabel *lID = new QLabel(tr("Hello, world!"));
-	layout->addWidget(lID);
+	layout->addWidget(lLevel = new QLabel);
+	layout->addWidget(dLevel = new Dial);
 
 	reset();
 	connect(source, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChanged(int)));
+	connect(dLevel, SIGNAL(moved(float)), this, SLOT(levelChanged(float)));
+	connect(dLevel, SIGNAL(rightClicked()), this, SLOT(levelReset()));
 }
 
 void AnalogTriggerCtrl::sourceChanged(int idx)
@@ -40,8 +42,22 @@ void AnalogTriggerCtrl::sourceChanged(int idx)
 	emit updateTrigger();
 }
 
+void AnalogTriggerCtrl::levelChanged(float frac)
+{
+	analog->trigger.configure.dispLevel += frac;
+	reset();
+}
+
+void AnalogTriggerCtrl::levelReset()
+{
+	dLevel->reset();
+	analog->trigger.configure.dispLevel = 0;
+	reset();
+}
+
 void AnalogTriggerCtrl::reset(void)
 {
 	int idx = analog->triggerChannelIndex();
 	source->setCurrentIndex(idx < 0 ? 0 : idx + 1);
+	lLevel->setText(tr("Level: %1").arg(scale_t::toString(analog->trigger.configure.dispLevel, true)));
 }

@@ -6,6 +6,7 @@
 #include "structures.h"
 #include "scalevalue.h"
 #include "device.h"
+#include "dial.h"
 
 class AnalogChannelCtrl : public QGroupBox
 {
@@ -21,13 +22,17 @@ public slots:
 	void updateColour(void);
 
 private slots:
-	void offsetChanged(void);
+	void offsetReset(void);
+	void offsetMoved(float frac);
 	void scaleChanged(void);
 	void enabledChanged(void);
 	void colourChanged(QColor clr);
 
 private:
-	QDoubleSpinBox *offset;
+	void updateOffset(void);
+
+	QLabel *lOffset;
+	Dial *offset;
 	QCheckBox *enabled;
 	ColourSelection *colour;
 	ScaleValue *scale;
