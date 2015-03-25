@@ -20,14 +20,14 @@ SOURCES += main.cpp\
     device.cpp \
     controller.cpp \
     structures.cpp \
-    conv.cpp \
     analog/analog.cpp \
     analog/analogchannelctrl.cpp \
     analog/analogtriggerctrl.cpp \
     analog/analogwaveform.cpp \
     common/colourselection.cpp \
     common/scalevalue.cpp \
-    analog/timebasectrl.cpp
+    analog/timebasectrl.cpp \
+    common/conv.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -35,14 +35,14 @@ HEADERS  += mainwindow.h \
     ../Inc/instructions.h \
     structures.h \
     controller.h \
-    conv.h \
     analog/analog.h \
     analog/analogchannelctrl.h \
     analog/analogtriggerctrl.h \
     analog/analogwaveform.h \
     common/colourselection.h \
     common/scalevalue.h \
-    analog/timebasectrl.h
+    analog/timebasectrl.h \
+    common/conv.h
 
 TRANSLATIONS = toolbox_en.ts
 

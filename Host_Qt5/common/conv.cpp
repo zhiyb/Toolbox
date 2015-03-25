@@ -10,12 +10,10 @@ float conv::rawUInt32ToFloat(quint32 x)
 	return u.f;
 }
 
-
 QVector4D conv::colorToVector4D(const QColor &colour)
 {
 	return QVector4D(colour.redF(), colour.greenF(), colour.blueF(), colour.alphaF());
 }
-
 
 QColor conv::vector4DToColor(const QVector4D &vec)
 {
