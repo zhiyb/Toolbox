@@ -47,7 +47,7 @@ HEADERS  += mainwindow.h \
 TRANSLATIONS = toolbox_en.ts
 
 DISTFILES += \
-    fragment.fsh \
-    gridvertex.vsh \
-    ytvertex.vsh \
-    vertex.vsh
+    shader/fragment.fsh \
+    shader/gridvertex.vsh \
+    shader/vertex.vsh \
+    shader/ytvertex.vsh

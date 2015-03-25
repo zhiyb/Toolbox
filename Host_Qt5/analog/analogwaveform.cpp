@@ -1,5 +1,6 @@
 #include "analogwaveform.h"
 
+#define SHADER_FILE_PATH	"shader/"
 //#define USE_STENCIL
 #define MINIMUM_SIZE_SQUARE	480
 #define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
@@ -100,10 +101,10 @@ void AnalogWaveform::initializeGL(void)
 #endif
 
 	try {
-		general.vsh = loadShaderFile(GL_VERTEX_SHADER, "vertex.vsh");
-		grid.vsh = loadShaderFile(GL_VERTEX_SHADER, "gridvertex.vsh");
-		wave.vshYT = loadShaderFile(GL_VERTEX_SHADER, "ytvertex.vsh");
-		general.fsh = loadShaderFile(GL_FRAGMENT_SHADER, "fragment.fsh");
+		general.vsh = loadShaderFile(GL_VERTEX_SHADER, SHADER_FILE_PATH "vertex.vsh");
+		grid.vsh = loadShaderFile(GL_VERTEX_SHADER, SHADER_FILE_PATH "gridvertex.vsh");
+		wave.vshYT = loadShaderFile(GL_VERTEX_SHADER, SHADER_FILE_PATH "ytvertex.vsh");
+		general.fsh = loadShaderFile(GL_FRAGMENT_SHADER, SHADER_FILE_PATH "fragment.fsh");
 	}
 	catch (QString str) {
 		qFatal(tr("Cannot load shader:\n%1").arg(str).toLocal8Bit());
