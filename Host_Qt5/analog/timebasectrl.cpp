@@ -24,7 +24,7 @@ void AnalogTimebaseCtrl::scaleChanged()
 		analog->timebase.configure.scale = analog->timebase.scale;
 		scale->updateValue();
 	} else {
-		emit updateConfigure();
+		emit updateRequest();
 		emit updateDisplay();
 	}
 }

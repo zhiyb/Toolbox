@@ -14,7 +14,7 @@ public:
 	~AnalogTimebaseCtrl();
 
 signals:
-	void updateConfigure(void);
+	void updateRequest(void);
 	void updateDisplay(void);
 
 public slots:

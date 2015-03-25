@@ -13,11 +13,10 @@ public:
 	explicit AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *parent = 0);
 
 signals:
-	void updateTrigger(void);
-	void updateTriggerSettings(void);
+	void updateRequest(void);
 
 public slots:
-	void reset(void);
+	void updateDisplay(void);
 
 private slots:
 	void sourceChanged(int idx);
@@ -25,6 +24,8 @@ private slots:
 	void levelReset(void);
 
 private:
+	void reset(void);
+
 	QComboBox *source;
 	QLabel *lLevel;
 	Dial *dLevel;

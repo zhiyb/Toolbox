@@ -51,6 +51,8 @@ void Analog::hideEvent(QHideEvent *e)
 
 void Analog::updateConfigure(void)
 {
+	analog->calculate();
+
 	bool send = false;
 	message_t msg(CMD_ANALOG, analog->id);
 	// Stop ADC
@@ -85,7 +87,7 @@ void Analog::updateConfigure(void)
 		if (analog->updateRequired())
 			analog->update();
 		waveform->update();
-		trigger->reset();
+		trigger->updateDisplay();
 	}
 	//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
 }
@@ -100,10 +102,9 @@ void Analog::rebuild(analog_t *analog)
 	AnalogTriggerCtrl *origTrigger = trigger;
 	AnalogTimebaseCtrl *origTimebase = timebase;
 	trigger = new AnalogTriggerCtrl(dev, analog);
-	connect(trigger, SIGNAL(updateTrigger()), this, SLOT(updateConfigure()));
-	connect(trigger, SIGNAL(updateTriggerSettings()), this, SLOT(updateTriggerSettings()));
+	connect(trigger, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	timebase = new AnalogTimebaseCtrl(dev, analog);
-	connect(timebase, SIGNAL(updateConfigure()), this, SLOT(updateConfigure()));
+	connect(timebase, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	if (!origTrigger)
 		layout->addWidget(trigger, 0, 2);
 	else

@@ -129,19 +129,25 @@ struct analog_t : public info_t, public resolution_t {
 	qreal gridTotalVoltage(const channel_t *ch) const {return (qreal)grid.count.height() * ch->configure.scale.value();}
 	qreal gridTotalVoltage(quint8 id) const {return gridTotalVoltage(findChannel(id));}
 	// Convert screen coordinate to (count, ADC)
-	int fromScreenX(qreal x, bool conf = false) const;
-	int fromScreenY(qreal y, const channel_t *ch) const;
-	int fromScreenY(qreal y, quint8 id) const {return fromScreenY(y, findChannel(id));}
-	QPoint fromScreen(QPointF pos, const channel_t *ch, bool conf = false) const {return QPoint(fromScreenX(pos.x(), conf), fromScreenY(pos.y(), ch));}
+	int countFromScreenX(qreal x, bool conf = false) const;
+	qreal voltageFromScreenY(qreal y, const channel_t *ch) const;
+	qreal voltageFromScreenY(qreal y, quint8 id) const {return voltageFromScreenY(y, findChannel(id));}
+	int adcFromScreenY(qreal y, const channel_t *ch) const {return voltageFromScreenY(y, ch) / ch->reference * maximum();}
+	int adcFromScreenY(qreal y, quint8 id) const {return adcFromScreenY(y, findChannel(id));}
+	QPoint fromScreen(QPointF pos, const channel_t *ch, bool conf = false) const {return QPoint(countFromScreenX(pos.x(), conf), adcFromScreenY(pos.y(), ch));}
 	QPoint fromScreen(QPointF pos, quint8 id, bool conf = false) const {return fromScreen(pos, findChannel(id), conf);}
 	// Convert (count, ADC) to screen coordinate
-	qreal toScreenX(int cnt, bool conf = false) const;
-	qreal toScreenY(int adc, const channel_t *ch) const;
-	qreal toScreenY(int adc, quint8 id) const {return toScreenY(adc, findChannel(id));}
-	QPointF toScreen(QPoint data, const channel_t *ch, bool conf = false) const {return QPointF(toScreenX(data.x(), conf), toScreenY(data.y(), ch));}
+	qreal countToScreenX(int cnt, bool conf = false) const;
+	qreal voltageToScreenY(qreal voltage, const channel_t *ch) const;
+	qreal adcToScreenY(int adc, const channel_t *ch) const {return voltageToScreenY((qreal)adc / maximum() * ch->reference + ch->totalOffset(), ch);}
+	qreal adcToScreenY(int adc, quint8 id) const {return adcToScreenY(adc, findChannel(id));}
+	QPointF toScreen(QPoint data, const channel_t *ch, bool conf = false) const {return QPointF(countToScreenX(data.x(), conf), adcToScreenY(data.y(), ch));}
 	QPointF toScreen(QPoint data, quint8 id, bool conf = false) const {return toScreen(data, findChannel(id), conf);}
 
-	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(conf ? trigger.configure.source : trigger.source);}
+	bool triggerValid(bool conf = false) const;
+	channel_t *triggerChannel(bool conf = false) {return findChannel(trigger.channel(conf));}
+	const channel_t *triggerChannel(bool conf = false) const {return findChannel(trigger.channel(conf));}
+	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(trigger.channel(conf));}
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
@@ -149,6 +155,7 @@ struct analog_t : public info_t, public resolution_t {
 	struct channel_t {
 		channel_t(void);
 		void update(const int bufferSize);
+		qreal totalOffset(void) const {return offset + configure.displayOffset;}
 		static const QColor defaultColours[DEFAULT_CHANNEL_COLOURS];
 
 		// Device information
@@ -220,9 +227,12 @@ struct analog_t : public info_t, public resolution_t {
 
 	struct trigger_t {
 		trigger_t(void) : view(false) {update();}
+		quint8 channel(bool conf = false) const {return conf ? configure.source : source;}
+		bool enabled(bool conf = false) const {return channel(conf) != INVALID_ID;}
+		bool sourceUpdateRequired(void) const {return source != configure.source;}
+		bool settingsUpdateRequired(void) const;
 		void update(void);
-		bool enabled(void) const {return source != INVALID_ID;}
-		bool updateRequired(void) const;
+		void reset(void);
 
 		bool view;
 		quint8 source;
@@ -231,7 +241,6 @@ struct analog_t : public info_t, public resolution_t {
 
 		struct configure_t {
 			configure_t(void) : source(INVALID_ID), dispLevel(0), dispPosition(0), colour(Qt::blue) {}
-			bool enabled(void) const {return source != INVALID_ID;}
 
 			quint8 source;
 			qreal dispLevel, dispPosition;

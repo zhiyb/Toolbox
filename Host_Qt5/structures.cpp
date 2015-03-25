@@ -100,45 +100,54 @@ quint32 analog_t::channelsEnabled(bool conf) const
 	return enabled;
 }
 
-int analog_t::fromScreenX(qreal x, bool conf) const
+int analog_t::countFromScreenX(qreal x, bool conf) const
 {
 	//	  Screen		       Grid		      Time		     Count
 	return (x + 1.f) * (grid.count.width() / 2) * timebase.value(conf) * timer.frequency(conf);
 }
 
-int analog_t::fromScreenY(qreal y, const analog_t::channel_t *ch) const
+qreal analog_t::voltageFromScreenY(qreal y, const analog_t::channel_t *ch) const
 {
 	if (!ch) {
-		qDebug(QObject::tr("[ERROR] analog_t::fromScreenY: Invalid channel").toLocal8Bit());
+		qDebug(QObject::tr("[ERROR] analog_t::voltageFromScreenY: Invalid channel").toLocal8Bit());
 		return 0;
 	}
-	// Screen			 Grid							   Voltage			   ADC
-	return (y * (grid.count.height() / 2) * ch->configure.scale.value() - ch->configure.displayOffset) / ch->reference * maximum();
+	//Screen			Grid					       Voltage
+	return y * (grid.count.height() / 2) * ch->configure.scale.value() - ch->totalOffset();
 }
 
-qreal analog_t::toScreenX(int cnt, bool conf) const
+qreal analog_t::countToScreenX(int cnt, bool conf) const
 {
 	//	    Count		     Time		    Grid			   Screen
 	return (qreal)cnt / timer.frequency(conf) / timebase.value(conf) / (grid.count.width() / 2) - 1.f;
 }
 
-qreal analog_t::toScreenY(int adc, const analog_t::channel_t *ch) const
+qreal analog_t::voltageToScreenY(qreal voltage, const analog_t::channel_t *ch) const
 {
 	if (!ch) {
-		qDebug(QObject::tr("[ERROR] analog_t::toScreenY: Invalid channel").toLocal8Bit());
+		qDebug(QObject::tr("[ERROR] analog_t::voltageToScreenY: Invalid channel").toLocal8Bit());
 		return 0.f;
 	}
-	//	       ADC						      Voltage			       Grid			 Screen
-	return ((qreal)adc / maximum() * ch->reference + ch->configure.displayOffset) / ch->configure.scale.value() / (grid.count.height() / 2);
+	//     Voltage			        Grid			  Screen
+	return voltage / ch->configure.scale.value() / (grid.count.height() / 2);
+}
+
+bool analog_t::triggerValid(bool conf) const
+{
+	int level = conf ? trigger.level : trigger.configure.level;
+	return level >= 0 && level <= (int)maximum();
 }
 
 bool analog_t::updateRequired() const
 {
 	bool upd = channelsEnabled(false) != channelsEnabled(true);
-	if (!scanMode(true))
-		upd |= buffer.updateRequired();
+	upd |= !scanMode(true) && buffer.updateRequired();
 	upd |= timebase.updateRequired();
-	upd |= trigger.updateRequired();
+	upd |= trigger.sourceUpdateRequired();
+	if (trigger.enabled()) {
+		upd |= triggerValid(true) != triggerValid(false);
+		upd |= triggerValid() && trigger.settingsUpdateRequired();
+	}
 	//qDebug(QObject::tr("[DEBUG] analog_t::updateRequired: %1").arg(upd).toLocal8Bit());
 	return upd;
 }
@@ -195,17 +204,15 @@ bool analog_t::calculate(void)
 			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
 				qDebug(QObject::tr("[WARNING] analog_t::calculate: Reached maximum ADC speed").toLocal8Bit());
 				return false;
-			} else
-				qDebug(QObject::tr("[INFO] analog_t::calculate: At maximum ADC speed").toLocal8Bit());
+			} //else
+				//qDebug(QObject::tr("[INFO] analog_t::calculate: At maximum ADC speed").toLocal8Bit());
 		}
 		buffer.configure.sizePerChannel = sizePerChannel;
 	}
 
 	// Calculate trigger parameters
 	if (trigger.configure.source != INVALID_ID) {
-		QPoint pos = fromScreen(QPointF(trigger.configure.dispPosition, trigger.configure.dispLevel), trigger.configure.source, true);
-		if (pos.y() < 0 || pos.y() > (int)maximum())
-			trigger.configure.source = INVALID_ID;
+		QPoint pos = fromScreen(QPointF(trigger.configure.dispPosition, trigger.configure.dispLevel), findChannel(trigger.configure.source), true);
 		trigger.configure.level = pos.y();
 		trigger.configure.position = pos.x();
 	}
@@ -263,10 +270,17 @@ void analog_t::trigger_t::update(void)
 	position = configure.position;
 }
 
-bool analog_t::trigger_t::updateRequired(void) const
+void analog_t::trigger_t::reset(void)
 {
-	bool upd = source != configure.source;
-	if (!upd && configure.source != INVALID_ID) {
+	configure.source = source;
+	configure.level = level;
+	configure.position = position;
+}
+
+bool analog_t::trigger_t::settingsUpdateRequired(void) const
+{
+	bool upd = sourceUpdateRequired();
+	if (!upd && enabled(true)) {
 		upd |= level != (quint32)configure.level;
 		upd |= position != configure.position;
 	}

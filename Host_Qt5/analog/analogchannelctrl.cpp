@@ -39,7 +39,7 @@ void AnalogChannelCtrl::updateColour(void)
 void AnalogChannelCtrl::offsetReset()
 {
 	offset->reset();
-	channel->offset = 0;
+	channel->configure.displayOffset = 0;
 	updateOffset();
 	emit updateRequest();
 }
@@ -47,7 +47,7 @@ void AnalogChannelCtrl::offsetReset()
 void AnalogChannelCtrl::offsetMoved(float frac)
 {
 	qreal step = channel->configure.scale.value() * (qreal)analog->grid.count.height() / 2.f / 2.f;
-	channel->offset += step * frac;
+	channel->configure.displayOffset += step * frac;
 	updateOffset();
 	emit updateRequest();
 }
@@ -77,5 +77,5 @@ void AnalogChannelCtrl::colourChanged(QColor clr)
 
 void AnalogChannelCtrl::updateOffset()
 {
-	lOffset->setText(tr("%1V").arg(scale_t::toString(channel->offset, true)));
+	lOffset->setText(tr("%1V").arg(scale_t::toString(channel->configure.displayOffset, true)));
 }

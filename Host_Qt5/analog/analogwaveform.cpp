@@ -222,7 +222,7 @@ void AnalogWaveform::paintGL(void)
 		if (channel.enabled) {
 			glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, channel.buffer.constData());
 			glUniform1f(wave.locationYT.reference, channel.reference);
-			glUniform1f(wave.locationYT.offset, channel.offset + channel.configure.displayOffset);
+			glUniform1f(wave.locationYT.offset, channel.totalOffset());
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
 			if (analog->scanMode()) {
