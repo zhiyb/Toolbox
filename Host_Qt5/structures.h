@@ -147,6 +147,7 @@ struct analog_t : public info_t, public resolution_t {
 		} configure;
 	};
 	QVector<channel_t> channels;
+	int findChannelIndex(quint8 id) const;
 	channel_t *findChannel(quint8 id);
 	const channel_t *findChannel(quint8 id) const;
 
@@ -220,6 +221,7 @@ struct analog_t : public info_t, public resolution_t {
 			qint32 level, position;
 		} configure;
 	} trigger;
+	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(conf ? trigger.configure.source : trigger.source);}
 
 	struct data_t {
 		data_t(void) : id(INVALID_ID) {}

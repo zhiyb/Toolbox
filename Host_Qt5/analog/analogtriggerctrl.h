@@ -19,6 +19,8 @@ private slots:
 	void sourceChanged(int idx);
 
 private:
+	void reset(void);
+
 	QComboBox *source;
 	//ScaleValue *scale;
 	Device *dev;

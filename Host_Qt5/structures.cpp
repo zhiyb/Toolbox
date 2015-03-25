@@ -108,24 +108,26 @@ bool analog_t::updateRequired() const
 	return upd;
 }
 
-analog_t::channel_t *analog_t::findChannel(quint8 id)
+int analog_t::findChannelIndex(quint8 id) const
 {
 	if (id == INVALID_ID)
-		return 0;
+		return -1;
 	for (int i = 0; i < channels.count(); i++)
 		if (channels.at(i).id == id)
-			return &channels[i];
-	return 0;
+			return i;
+	return -1;
+}
+
+analog_t::channel_t *analog_t::findChannel(quint8 id)
+{
+	int idx = findChannelIndex(id);
+	return idx < 0 ? 0 : &channels[idx];
 }
 
 const analog_t::channel_t *analog_t::findChannel(quint8 id) const
 {
-	if (id == INVALID_ID)
-		return 0;
-	for (int i = 0; i < channels.count(); i++)
-		if (channels.at(i).id == id)
-			return &channels.at(i);
-	return 0;
+	int idx = findChannelIndex(id);
+	return idx < 0 ? 0 : &channels.at(idx);
 }
 
 void analog_t::init(void)
