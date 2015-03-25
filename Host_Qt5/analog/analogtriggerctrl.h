@@ -16,14 +16,15 @@ signals:
 	void updateTrigger(void);
 	void updateTriggerSettings(void);
 
+public slots:
+	void reset(void);
+
 private slots:
 	void sourceChanged(int idx);
 	void levelChanged(float frac);
 	void levelReset(void);
 
 private:
-	void reset(void);
-
 	QComboBox *source;
 	QLabel *lLevel;
 	Dial *dLevel;

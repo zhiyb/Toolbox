@@ -110,16 +110,38 @@ struct analog_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_ANALOG;}
 	void init(void);
 	bool calculate(void);
+	bool updateRequired(void) const;
 	void update(void);
-	qreal gridTotalTime(void) {return timebase.scale.value() * (qreal)grid.count.width();}
-	qreal gridTotalTimeConfigure(void) {return timebase.configure.scale.value() * (qreal)grid.count.width();}
+
+	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
+
+	struct channel_t;
+	channel_t *findChannel(quint8 id);
+	const channel_t *findChannel(quint8 id) const;
+	int findChannelIndex(quint8 id) const;
 	quint32 channelsCount(bool conf = false) const;
 	bool channelEnabled(int i, bool conf = false) const {return conf ? (channels.at(i).configure.enabled || channels.at(i).id == trigger.configure.source) : (channels.at(i).enabled || channels.at(i).id == trigger.source);}
 	void setChannelsEnabled(quint32 enabled);
 	quint32 channelsEnabled(bool conf = false) const;
 	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
-	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
-	bool updateRequired(void) const;
+
+	qreal gridTotalTime(bool conf = false) const {return (qreal)grid.count.width() * timebase.value(conf);}
+	qreal gridTotalVoltage(const channel_t *ch) const {return (qreal)grid.count.height() * ch->configure.scale.value();}
+	qreal gridTotalVoltage(quint8 id) const {return gridTotalVoltage(findChannel(id));}
+	// Convert screen coordinate to (count, ADC)
+	int fromScreenX(qreal x, bool conf = false) const;
+	int fromScreenY(qreal y, const channel_t *ch) const;
+	int fromScreenY(qreal y, quint8 id) const {return fromScreenY(y, findChannel(id));}
+	QPoint fromScreen(QPointF pos, const channel_t *ch, bool conf = false) const {return QPoint(fromScreenX(pos.x(), conf), fromScreenY(pos.y(), ch));}
+	QPoint fromScreen(QPointF pos, quint8 id, bool conf = false) const {return fromScreen(pos, findChannel(id), conf);}
+	// Convert (count, ADC) to screen coordinate
+	qreal toScreenX(int cnt, bool conf = false) const;
+	qreal toScreenY(int adc, const channel_t *ch) const;
+	qreal toScreenY(int adc, quint8 id) const {return toScreenY(adc, findChannel(id));}
+	QPointF toScreen(QPoint data, const channel_t *ch, bool conf = false) const {return QPointF(toScreenX(data.x(), conf), toScreenY(data.y(), ch));}
+	QPointF toScreen(QPoint data, quint8 id, bool conf = false) const {return toScreen(data, findChannel(id), conf);}
+
+	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(conf ? trigger.configure.source : trigger.source);}
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
@@ -147,9 +169,6 @@ struct analog_t : public info_t, public resolution_t {
 		} configure;
 	};
 	QVector<channel_t> channels;
-	int findChannelIndex(quint8 id) const;
-	channel_t *findChannel(quint8 id);
-	const channel_t *findChannel(quint8 id) const;
 
 	hwtimer_t timer;
 
@@ -190,6 +209,7 @@ struct analog_t : public info_t, public resolution_t {
 	struct timebase_t {
 		void update(void) {scale = configure.scale;}
 		bool updateRequired(void) const {return scale != configure.scale;}
+		float value(bool conf = false) const {return conf ? configure.scale.value() : scale.value();}
 
 		scale_t scale;
 
@@ -221,7 +241,6 @@ struct analog_t : public info_t, public resolution_t {
 			qint32 level, position;
 		} configure;
 	} trigger;
-	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(conf ? trigger.configure.source : trigger.source);}
 
 	struct data_t {
 		data_t(void) : id(INVALID_ID) {}

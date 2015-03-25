@@ -67,7 +67,7 @@ QString scale_t::toString(const qreal value, bool prec)
 	if (unit >= sizeof(units) / sizeof(units[0]))
 		return QString(units[0]).arg(0);
 	if (prec)
-		return QString(units[unit]).arg(v, 0, 'f', 3);
+		return QString(units[unit]).arg(v, 0, 'f', 2);
 	else
 		return QString(units[unit]).arg(v);
 }
@@ -98,6 +98,38 @@ quint32 analog_t::channelsEnabled(bool conf) const
 		mask <<= 1;
 	}
 	return enabled;
+}
+
+int analog_t::fromScreenX(qreal x, bool conf) const
+{
+	//	  Screen		       Grid		      Time		     Count
+	return (x + 1.f) * (grid.count.width() / 2) * timebase.value(conf) * timer.frequency(conf);
+}
+
+int analog_t::fromScreenY(qreal y, const analog_t::channel_t *ch) const
+{
+	if (!ch) {
+		qDebug(QObject::tr("[ERROR] analog_t::fromScreenY: Invalid channel").toLocal8Bit());
+		return 0;
+	}
+	// Screen			 Grid							   Voltage			   ADC
+	return (y * (grid.count.height() / 2) * ch->configure.scale.value() - ch->configure.displayOffset) / ch->reference * maximum();
+}
+
+qreal analog_t::toScreenX(int cnt, bool conf) const
+{
+	//	    Count		     Time		    Grid			   Screen
+	return (qreal)cnt / timer.frequency(conf) / timebase.value(conf) / (grid.count.width() / 2) - 1.f;
+}
+
+qreal analog_t::toScreenY(int adc, const analog_t::channel_t *ch) const
+{
+	if (!ch) {
+		qDebug(QObject::tr("[ERROR] analog_t::toScreenY: Invalid channel").toLocal8Bit());
+		return 0.f;
+	}
+	//	       ADC						      Voltage			       Grid			 Screen
+	return ((qreal)adc / maximum() * ch->reference + ch->configure.displayOffset) / ch->configure.scale.value() / (grid.count.height() / 2);
 }
 
 bool analog_t::updateRequired() const
@@ -141,7 +173,7 @@ void analog_t::init(void)
 bool analog_t::calculate(void)
 {
 	//qDebug() << "[DEBUG] analog_t::calculate";
-	if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.configure.scale.value())) {
+	if (!timer.setFrequency((float)grid.preferredPointsPerGrid / timebase.value(true))) {
 		//qDebug(QObject::tr("[INFO] analog_t::calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 		timer.configure.value = timer.maximum();
 	}
@@ -153,13 +185,13 @@ bool analog_t::calculate(void)
 		}
 		if (sizePerChannel / grid.count.width() > grid.preferredPointsPerGrid)
 			sizePerChannel = grid.preferredPointsPerGrid * grid.count.width();
-		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.configure.scale.value())) {
+		if (!timer.setFrequency((float)sizePerChannel / (float)grid.count.width() / timebase.value(true))) {
 			//qDebug(QObject::tr("[INFO] analog_t::calculate: Failed to configure timer, set to maximum").toLocal8Bit());
 			timer.configure.value = timer.maximum();
 		}
 		if (timer.frequency(true) * channelsCount(true) >= maxFrequency) {
 			timer.setFrequency((maxFrequency - 1) / channelsCount(true));
-			sizePerChannel = gridTotalTimeConfigure() * timer.frequency(true);
+			sizePerChannel = gridTotalTime(true) * timer.frequency(true);
 			if (sizePerChannel / grid.count.width() < grid.minimumPointsPerGrid) {
 				qDebug(QObject::tr("[WARNING] analog_t::calculate: Reached maximum ADC speed").toLocal8Bit());
 				return false;
@@ -171,20 +203,11 @@ bool analog_t::calculate(void)
 
 	// Calculate trigger parameters
 	if (trigger.configure.source != INVALID_ID) {
-		qint32 level, position;
-		const analog_t::channel_t *ch = findChannel(trigger.configure.source);
-		if (!ch) {
-			qDebug(QObject::tr("[WARNING] analog_t::calculate: Cannot find trigger channel %1").arg(trigger.configure.source).toLocal8Bit());
-			return false;
-		}
-		//			      Screen				   Grid							     Voltage			     ADC
-		level = (trigger.configure.dispLevel * (qreal)grid.count.height() / 2.f * ch->configure.scale.value() - ch->configure.displayOffset) / ch->reference * maximum();
-		//					   Screen			       Grid			Time		       Count
-		position = (trigger.configure.dispPosition + 1.f) * (qreal)grid.count.width() / 2.f * timebase.scale.value() * timer.frequency(true);
-		if (level < 0 || level > (qint32)maximum())
+		QPoint pos = fromScreen(QPointF(trigger.configure.dispPosition, trigger.configure.dispLevel), trigger.configure.source, true);
+		if (pos.y() < 0 || pos.y() > (int)maximum())
 			trigger.configure.source = INVALID_ID;
-		trigger.configure.level = level;
-		trigger.configure.position = position;
+		trigger.configure.level = pos.y();
+		trigger.configure.position = pos.x();
 	}
 
 	//qDebug() << scanModeConfigure() << channelsCountConfigure() << timer.frequencyConfigure() << timer.configure.value << timebase.configure.scale.value() << buffer.configure.sizePerChannel;
@@ -203,7 +226,7 @@ void analog_t::update(void)
 	else
 		buffer.sizePerChannel = buffer.configure.sizePerChannel;
 	buffer.reset();
-	grid.pointsPerGrid = timer.frequency() * timebase.scale.value();
+	grid.pointsPerGrid = timer.frequency() * timebase.value();
 	//qDebug() << "[DEBUG] Analog update:" << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
 	for (int i = 0; i < channels.count(); i++)
 		channels[i].update(buffer.sizePerChannel);

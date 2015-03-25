@@ -35,7 +35,7 @@ private slots:
 private:
 	void initADC(void);
 	void startADC(bool start);
-	void updateAt(quint32 sequence);
+	void updateAt(quint32 sequence) {updateSequence = sequence;}
 	bool timerUpdateRequired(void) {return analog->timer.value != analog->timer.configure.value;}
 
 	QGridLayout *layout;

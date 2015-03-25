@@ -46,14 +46,7 @@ void Analog::showEvent(QShowEvent *e)
 void Analog::hideEvent(QHideEvent *e)
 {
 	startADC(false);
-	analog->buffer.validSize = 0;
-	analog->buffer.position = 0;
 	QWidget::hideEvent(e);
-}
-
-void Analog::updateAt(quint32 sequence)
-{
-	updateSequence = sequence;
 }
 
 void Analog::updateConfigure(void)
@@ -92,6 +85,7 @@ void Analog::updateConfigure(void)
 		if (analog->updateRequired())
 			analog->update();
 		waveform->update();
+		trigger->reset();
 	}
 	//qDebug(tr("[DEBUG] Analog::channelChanged: Message %1").arg(msg.sequence).toLocal8Bit());
 }
