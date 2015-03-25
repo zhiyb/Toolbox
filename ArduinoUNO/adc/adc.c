@@ -172,7 +172,6 @@ void ctrlADCControllerGenerate(void)
 	sendValue(channelEnabled, CTRL_ADC_CHANNELS_BYTES);
 	sendValue(ADC_BUFFER_SIZE / CTRL_ADC_BYTES, 4);	// ADC conversion buffer size
 	ctrlTimer0ControllerGenerate();	// ADC trigger timer information
-	sendChar(CMD_END);			// End settings
 }
 
 ISR(ADC_vect, ISR_NOBLOCK)
