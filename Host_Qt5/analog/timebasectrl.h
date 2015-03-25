@@ -6,12 +6,12 @@
 #include "device.h"
 #include "structures.h"
 
-class TimebaseCtrl : public QGroupBox
+class AnalogTimebaseCtrl : public QGroupBox
 {
 	Q_OBJECT
 public:
-	explicit TimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent = 0);
-	~TimebaseCtrl();
+	explicit AnalogTimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent = 0);
+	~AnalogTimebaseCtrl();
 
 signals:
 	void updateConfigure(void);

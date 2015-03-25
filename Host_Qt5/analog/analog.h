@@ -42,7 +42,7 @@ private:
 	QGridLayout *channelLayout;
 	AnalogTriggerCtrl *trigger;
 	AnalogWaveform *waveform;
-	TimebaseCtrl *timebase;
+	AnalogTimebaseCtrl *timebase;
 	Device *dev;
 	analog_t *analog;
 	quint32 updateSequence;

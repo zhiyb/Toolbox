@@ -1,6 +1,6 @@
 #include "timebasectrl.h"
 
-TimebaseCtrl::TimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGroupBox(parent)
+AnalogTimebaseCtrl::AnalogTimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGroupBox(parent)
 {
 	this->dev = dev;
 	this->analog = analog;
@@ -14,11 +14,11 @@ TimebaseCtrl::TimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGr
 	connect(scale, SIGNAL(valueChanged(float)), this, SLOT(scaleChanged()));
 }
 
-TimebaseCtrl::~TimebaseCtrl()
+AnalogTimebaseCtrl::~AnalogTimebaseCtrl()
 {
 }
 
-void TimebaseCtrl::scaleChanged()
+void AnalogTimebaseCtrl::scaleChanged()
 {
 	if (!analog->calculate()) {
 		analog->timebase.configure.scale = analog->timebase.scale;

@@ -103,11 +103,11 @@ void Analog::rebuild(analog_t *analog)
 	initADC();
 
 	AnalogTriggerCtrl *origTrigger = trigger;
-	TimebaseCtrl *origTimebase = timebase;
+	AnalogTimebaseCtrl *origTimebase = timebase;
 	trigger = new AnalogTriggerCtrl(dev, analog);
 	connect(trigger, SIGNAL(updateTrigger()), this, SLOT(updateConfigure()));
 	connect(trigger, SIGNAL(updateTriggerSettings()), this, SLOT(updateTriggerSettings()));
-	timebase = new TimebaseCtrl(dev, analog);
+	timebase = new AnalogTimebaseCtrl(dev, analog);
 	connect(timebase, SIGNAL(updateConfigure()), this, SLOT(updateConfigure()));
 	if (!origTrigger)
 		layout->addWidget(trigger, 0, 2);

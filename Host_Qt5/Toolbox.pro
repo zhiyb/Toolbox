@@ -12,7 +12,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Toolbox
 TEMPLATE = app
 
-INCLUDEPATH += ../Inc
+INCLUDEPATH += ../Inc . ./common ./analog
 
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -20,14 +20,14 @@ SOURCES += main.cpp\
     device.cpp \
     controller.cpp \
     structures.cpp \
-    analog.cpp \
-    analogwaveform.cpp \
-    scalevalue.cpp \
-    analogchannelctrl.cpp \
     conv.cpp \
-    timebasectrl.cpp \
-    colourselection.cpp \
-    analogtriggerctrl.cpp
+    analog/analog.cpp \
+    analog/analogchannelctrl.cpp \
+    analog/analogtriggerctrl.cpp \
+    analog/analogwaveform.cpp \
+    common/colourselection.cpp \
+    common/scalevalue.cpp \
+    analog/timebasectrl.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -35,14 +35,14 @@ HEADERS  += mainwindow.h \
     ../Inc/instructions.h \
     structures.h \
     controller.h \
-    analog.h \
-    analogwaveform.h \
-    scalevalue.h \
-    analogchannelctrl.h \
     conv.h \
-    timebasectrl.h \
-    colourselection.h \
-    analogtriggerctrl.h
+    analog/analog.h \
+    analog/analogchannelctrl.h \
+    analog/analogtriggerctrl.h \
+    analog/analogwaveform.h \
+    common/colourselection.h \
+    common/scalevalue.h \
+    analog/timebasectrl.h
 
 TRANSLATIONS = toolbox_en.ts
 
