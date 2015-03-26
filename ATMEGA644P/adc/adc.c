@@ -98,6 +98,7 @@ static void startADC(void)
 		adcBufferCurrent = adcBufferStart = adcTxBuffer + ADC_PREPEND_BYTES;
 		adcBufferEnd = adcBufferStart + adcBufferCount * CTRL_ADC_BYTES;
 	}
+	chSeqCurrent = channelSequence;
 	pauseADC();
 	while (ADCSRA & _BV(ADSC));
 	ADCSRA |= _BV(ADIE);
