@@ -15,6 +15,8 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 	layout->addWidget(colour = new ColourSelection(channel->configure.colour), 1, 0);
 	layout->addWidget(scale = new ScaleValue(&channel->configure.scale, tr("V/div")), 2, 0);
 
+	lOffset->setAlignment(Qt::AlignCenter);
+
 	connect(offset, SIGNAL(moved(float)), this, SLOT(offsetMoved(float)));
 	connect(offset, SIGNAL(rightClicked()), this, SLOT(offsetReset()));
 	connect(colour, SIGNAL(colourChanged(QColor)), this, SLOT(colourChanged(QColor)));

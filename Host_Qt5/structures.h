@@ -184,6 +184,7 @@ struct analog_t : public info_t, public resolution_t {
 	hwtimer_t timer;
 
 	struct buffer_t {
+		buffer_t(void) : sizePerChannel(0), position(0), validSize(0) {}
 		void reset(void);
 		bool updateRequired(void) const {return sizePerChannel != configure.sizePerChannel;}
 
@@ -197,6 +198,8 @@ struct analog_t : public info_t, public resolution_t {
 		quint32 position, validSize;
 
 		struct configure_t {
+			configure_t(void) : sizePerChannel(0) {}
+
 			quint32 sizePerChannel;
 		} configure;
 	} buffer;

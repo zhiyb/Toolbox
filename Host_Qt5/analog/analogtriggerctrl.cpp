@@ -25,6 +25,8 @@ AnalogTriggerCtrl::AnalogTriggerCtrl(Device *dev, analog_t *analog, QWidget *par
 	edge->addItem(tr("Rising edge"));
 	edge->addItem(tr("Falling edge"));
 
+	lLevel->setAlignment(Qt::AlignCenter);
+
 	reset();
 	updateDisplay();
 	connect(source, SIGNAL(currentIndexChanged(int)), this, SLOT(sourceChanged(int)));
@@ -75,7 +77,7 @@ void AnalogTriggerCtrl::levelReset(void)
 {
 	if (analog->trigger.enabled(true)) {
 		const analog_t::channel_t *ch = analog->triggerChannel(true);
-		int min = 0, max = 0;
+		int min = analog->maximum(), max = 0;
 		for (quint32 i = 0; i < analog->buffer.validSize; i++) {
 			int adc = ch->buffer.at(i);
 			if (adc < min)
