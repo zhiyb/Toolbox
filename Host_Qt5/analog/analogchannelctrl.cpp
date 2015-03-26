@@ -4,7 +4,7 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 {
 	this->dev = dev;
 	this->analog = analog;
-	this->channel = &analog->channels[channelNum];
+	this->channel = &analog->channel[channelNum];
 	setTitle(tr("%2/%1").arg(channel->name).arg(channel->id));
 
 	QGridLayout *layout = new QGridLayout(this);

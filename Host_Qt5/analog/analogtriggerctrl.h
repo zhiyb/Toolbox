@@ -20,13 +20,14 @@ public slots:
 
 private slots:
 	void sourceChanged(int idx);
+	void edgeChanged(int idx);
 	void levelChanged(float frac);
 	void levelReset(void);
 
 private:
 	void reset(void);
 
-	QComboBox *source;
+	QComboBox *source, *edge;
 	QLabel *lLevel;
 	Dial *dLevel;
 	Device *dev;

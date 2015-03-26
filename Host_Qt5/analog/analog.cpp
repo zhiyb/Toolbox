@@ -119,7 +119,7 @@ void Analog::rebuild(analog_t *analog)
 		channelLayout->removeItem(item);
 		delete item;
 	}
-	for (int i = 0; i < analog->channels.count(); i++) {
+	for (int i = 0; i < analog->channel.count(); i++) {
 		AnalogChannelCtrl *ctrl = new AnalogChannelCtrl(dev, analog, i);
 		channelLayout->addWidget(ctrl, i % CHANNEL_ROW_COUNT, i / CHANNEL_ROW_COUNT);
 		connect(ctrl, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
@@ -195,17 +195,22 @@ void Analog::analogData(analog_t::data_t data)
 {
 	if (data.id != analog->id)
 		return;
+	if (analog->trigger.enabled() && analog->triggerValid()) {
+		if (analog->triggerDataHandler(data))
+			waveform->update();
+		return;
+	}
 	//qDebug(tr("[%1] Analog data type: %2, count: %3").arg(QTime::currentTime().toString()).arg(data.type).arg(data.data.count()).toLocal8Bit());
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
 		if ((quint32)data.data.count() != analog->channelsCount()) {
-			//qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
 			return;
 		}
-		for (int i = 0; i < analog->channels.count(); i++)
+		for (int i = 0; i < analog->channel.count(); i++)
 			if (analog->channelEnabled(i, false))
-				analog->channels[i].buffer[analog->buffer.position] = data.data.at(count++);
+				analog->channel[i].buffer[analog->buffer.position] = data.data.at(count++);
 		analog->buffer.position++;
 		if (analog->buffer.validSize < analog->buffer.position)
 			analog->buffer.validSize = analog->buffer.position;
@@ -214,13 +219,15 @@ void Analog::analogData(analog_t::data_t data)
 		break;
 	case CTRL_FRAME:
 		if ((quint32)data.data.count() != analog->channelsCount() * analog->buffer.sizePerChannel) {
-			//qDebug(tr("Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
 			return;
 		}
+		for (int i = 0; i < analog->channel.count(); i++)
+			analog->channel[i].buffer.resize(analog->buffer.sizePerChannel);
 		for (quint32 pos = 0; pos < analog->buffer.sizePerChannel; pos++)
-			for (int i = 0; i < analog->channels.count(); i++)
+			for (int i = 0; i < analog->channel.count(); i++)
 				if (analog->channelEnabled(i, false))
-					analog->channels[i].buffer[pos] = data.data.at(count++);
+					analog->channel[i].buffer[pos] = data.data.at(count++);
 		analog->buffer.validSize = analog->buffer.sizePerChannel;
 		break;
 	}

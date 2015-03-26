@@ -217,8 +217,8 @@ void AnalogWaveform::paintGL(void)
 	glUniform1i(wave.locationYT.vCount, analog->grid.count.height());
 	glUniform1f(wave.locationYT.timebase, analog->timebase.scale.value());
 	glUniform1f(wave.locationYT.frequency, analog->timer.frequency());
-	for (int i = 0; i < analog->channels.count(); i++) {
-		const analog_t::channel_t &channel = analog->channels.at(i);
+	for (int i = 0; i < analog->channel.count(); i++) {
+		const analog_t::channel_t &channel = analog->channel.at(i);
 		if (channel.enabled) {
 			glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, channel.buffer.constData());
 			glUniform1f(wave.locationYT.reference, channel.reference);

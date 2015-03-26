@@ -324,21 +324,6 @@ bool Connection::reset(void)
 	return true;
 }
 
-void Connection::resync()
-{
-	writeRepeatedChar(INVALID_ID, 16);
-}
-
-void Connection::quickResync()
-{
-	writeRepeatedChar(INVALID_ID, 8);
-}
-
-void Connection::requestInfo(void)
-{
-	enqueue(message_t(CMD_INFO, INVALID_ID));
-}
-
 void Connection::pushInfo(info_t *s)
 {
 	for (int i = 0; i < infos.count(); i++) {
@@ -445,8 +430,9 @@ analog_t *Connection::readAnalog(void)
 		channel.name = readString();
 		channel.reference = conv::rawUInt32ToFloat(readValue(4));
 		channel.offset = conv::rawUInt32ToFloat(readValue(4));
-		analog->channels.append(channel);
+		analog->channel.append(channel);
 	}
+	analog->trigger.state.buffer.resize(analog->channel.size());
 	analog->setChannelsEnabled(readValue(analog->channelsBytes()));
 	analog->buffer.size = readValue(4);
 	analog->timer = readTimer();

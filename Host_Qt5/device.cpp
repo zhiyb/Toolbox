@@ -81,9 +81,9 @@ void Device::controllerInfo(controller_t *s)
 void Device::analogInfo(analog_t *s)
 {
 	qDebug(tr("[DEBUG] Analog ID: %1, name: %2, resolution: %3, scanFrequency: %4, maxFrequency: %5, channels: %6, enabled: %7")\
-	       .arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->maxFrequency).arg(s->channels.count()).arg(s->channelsEnabled(true), 0, 2).toLocal8Bit());
-	for (int i = 0; i < s->channels.count(); i++) {
-		const analog_t::channel_t &channel = s->channels.at(i);
+	       .arg(s->id).arg(s->name).arg(s->resolution).arg(s->scanFrequency).arg(s->maxFrequency).arg(s->channel.count()).arg(s->channelsEnabled(true), 0, 2).toLocal8Bit());
+	for (int i = 0; i < s->channel.count(); i++) {
+		const analog_t::channel_t &channel = s->channel.at(i);
 		qDebug(tr("[DEBUG]   Channel ID: %1, name: %2, reference: %3, offset: %4").arg(channel.id).arg(channel.name).arg(channel.reference).arg(channel.offset).toLocal8Bit());
 	}
 	qDebug(tr("[DEBUG]   Buffer size: %1").arg(s->buffer.size).toLocal8Bit());

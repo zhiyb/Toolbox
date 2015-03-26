@@ -75,7 +75,7 @@ QString scale_t::toString(const qreal value, bool prec)
 quint32 analog_t::channelsCount(bool conf) const
 {
 	quint32 count = 0;
-	for (int i = 0; i < channels.count(); i++)
+	for (int i = 0; i < channel.count(); i++)
 		count += channelEnabled(i, conf);
 	return count;
 }
@@ -83,17 +83,17 @@ quint32 analog_t::channelsCount(bool conf) const
 void analog_t::setChannelsEnabled(quint32 enabled)
 {
 	quint32 mask = 1;
-	for (int i = 0; i < channels.count(); i++) {
-		channels[i].enabled = channels[i].configure.enabled = enabled & mask;
+	for (int i = 0; i < channel.count(); i++) {
+		channel[i].enabled = channel[i].configure.enabled = enabled & mask;
 		mask <<= 1;
 	}
 }
 
-quint32 analog_t::channelsEnabled(bool conf) const
+quint32 analog_t::channelsEnabled(bool conf, bool chOnly) const
 {
 	quint32 enabled = 0, mask = 1;
-	for (int i = 0; i < channels.count(); i++) {
-		if (channelEnabled(i, conf))
+	for (int i = 0; i < channel.count(); i++) {
+		if (chOnly ? (conf ? channel.at(i).configure.enabled : channel.at(i).enabled) : channelEnabled(i, conf))
 			enabled |= mask;
 		mask <<= 1;
 	}
@@ -138,9 +138,42 @@ bool analog_t::triggerValid(bool conf) const
 	return level >= 0 && level <= (int)maximum();
 }
 
+bool analog_t::triggerDataHandler(const data_t &data)
+{
+	quint32 count = 0;
+	switch (data.type) {
+	case CTRL_DATA:
+		if ((quint32)data.data.count() != channelsCount()) {
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			return false;
+		}
+		if (trigger.dataHandler(data.data) != trigger_t::state_t::Done)
+			return false;
+		for (int i = 0; i < channel.count(); i++)
+			channel[i].buffer = trigger.state.buffer[i].buffer;
+		buffer.validSize = buffer.sizePerChannel;
+		//qDebug(QObject::tr("[DEBUG] triggerDataHandler: return true").toLocal8Bit());
+		return true;
+	case CTRL_FRAME:
+		if ((quint32)data.data.count() != channelsCount() * buffer.sizePerChannel) {
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			return false;
+		}
+		for (int i = 0; i < channel.count(); i++)
+			channel[i].buffer.resize(buffer.sizePerChannel);
+		for (quint32 pos = 0; pos < buffer.sizePerChannel; pos++)
+			for (int i = 0; i < channel.count(); i++)
+				if (channelEnabled(i, false))
+					channel[i].buffer[pos] = data.data.at(count++);
+		buffer.validSize = buffer.sizePerChannel;
+		return true;
+	}
+	return false;
+}
+
 bool analog_t::updateRequired() const
 {
-	bool upd = channelsEnabled(false) != channelsEnabled(true);
+	bool upd = channelsEnabled(false, true) != channelsEnabled(true, true);
 	upd |= !scanMode(true) && buffer.updateRequired();
 	upd |= timebase.updateRequired();
 	upd |= trigger.sourceUpdateRequired();
@@ -156,8 +189,8 @@ int analog_t::findChannelIndex(quint8 id) const
 {
 	if (id == INVALID_ID)
 		return -1;
-	for (int i = 0; i < channels.count(); i++)
-		if (channels.at(i).id == id)
+	for (int i = 0; i < channel.count(); i++)
+		if (channel.at(i).id == id)
 			return i;
 	return -1;
 }
@@ -165,13 +198,13 @@ int analog_t::findChannelIndex(quint8 id) const
 analog_t::channel_t *analog_t::findChannel(quint8 id)
 {
 	int idx = findChannelIndex(id);
-	return idx < 0 ? 0 : &channels[idx];
+	return idx < 0 ? 0 : &channel[idx];
 }
 
 const analog_t::channel_t *analog_t::findChannel(quint8 id) const
 {
 	int idx = findChannelIndex(id);
-	return idx < 0 ? 0 : &channels.at(idx);
+	return idx < 0 ? 0 : &channel.at(idx);
 }
 
 void analog_t::init(void)
@@ -226,8 +259,8 @@ void analog_t::update(void)
 	timer.update();
 	timebase.update();
 	trigger.update();
-	for (int i = 0; i < channels.count(); i++)
-		channels[i].enabled = channels[i].configure.enabled;
+	for (int i = 0; i < channel.count(); i++)
+		channel[i].enabled = channel[i].configure.enabled;
 	if (scanMode())
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 	else
@@ -235,8 +268,12 @@ void analog_t::update(void)
 	buffer.reset();
 	grid.pointsPerGrid = timer.frequency() * timebase.value();
 	//qDebug() << "[DEBUG] Analog update:" << scanMode() << channelsCount() << timer.frequency() << timer.value << timebase.scale.value() << buffer.sizePerChannel;
-	for (int i = 0; i < channels.count(); i++)
-		channels[i].update(buffer.sizePerChannel);
+	for (int i = 0; i < channel.count(); i++) {
+		channel[i].update(buffer.sizePerChannel);
+		trigger.state.buffer[i].enabled = channelEnabled(i);
+	}
+	trigger.state.bufferIndex = triggerChannelIndex();
+	trigger.resetBuffer(buffer.sizePerChannel);
 }
 
 analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
@@ -266,6 +303,7 @@ void analog_t::buffer_t::reset(void)
 void analog_t::trigger_t::update(void)
 {
 	source = configure.source;
+	edge = configure.edge;
 	level = configure.level;
 	position = configure.position;
 }
@@ -277,12 +315,98 @@ void analog_t::trigger_t::reset(void)
 	configure.position = position;
 }
 
+void analog_t::trigger_t::resetBuffer(const int size)
+{
+	state.bufferSize = size;
+	state.position = position <= 0 ? position : 0;
+	state.status = position <= 0 ? state_t::Waiting : state_t::Pre;
+	for (int i = 0; i < state.buffer.count(); i++)
+		state.buffer[i].buffer.resize(position > size ? position + 1 : size);
+}
+
+bool analog_t::trigger_t::beforeEdge(void)
+{
+	return (edge == Rising && state.currentData() <= level) || (edge == Falling && state.currentData() >= level);
+}
+
+analog_t::trigger_t::state_t::Status analog_t::trigger_t::dataHandler(const QVector<quint32> &data)
+{
+	// Before saving
+	switch (state.status) {
+	case state_t::Pre:
+		if (state.position >= position) {
+			if (beforeEdge())
+				state.status = state_t::Waiting;
+			state.shiftBuffer();
+		} else
+			state.position++;
+		break;
+	case state_t::Waiting:
+		state.shiftBuffer();
+		break;
+	case state_t::Post:
+		break;
+	case state_t::Done:
+		// Reset
+		state.position = position <= 0 ? position : 0;
+		state.status = state_t::Pre;
+		break;
+	};
+
+	// Save into buffer
+	//qDebug(QObject::tr("[DEBUG] trigger_t::dataHandler: %1, %2, %3").arg(state.position).arg(state.bufferSize).arg((int)state.status).toLocal8Bit());
+	quint32 count = 0;
+	for (int i = 0; i < state.buffer.count(); i++)
+		if (state.buffer[i].enabled)
+			state.buffer[i].buffer[state.position <= 0 ? 0 : state.position] = data.at(count++);
+
+	// After save
+	switch (state.status) {
+	case state_t::Pre:
+		break;
+	case state_t::Waiting:
+		if (!beforeEdge()) {
+			state.position++;
+			state.status = state_t::Post;
+		}
+		break;
+	case state_t::Post:
+		state.position++;
+		break;
+	case state_t::Done:
+		break;
+	};
+
+	// Done checking
+	if (state.status == state_t::Post && state.position >= (qint32)state.bufferSize) {
+		state.status = state_t::Done;
+		// Reset
+		state.position = position <= 0 ? position : 0;
+	}
+	return state.status;
+}
+
 bool analog_t::trigger_t::settingsUpdateRequired(void) const
 {
 	bool upd = sourceUpdateRequired();
 	if (!upd && enabled(true)) {
+		upd |= edge != configure.edge;
 		upd |= level != (quint32)configure.level;
 		upd |= position != configure.position;
 	}
 	return upd;
+}
+
+void analog_t::trigger_t::state_t::shiftBuffer(void)
+{
+	for (int i = 0; i < buffer.count(); i++)
+		if (buffer[i].enabled) {
+			buffer[i].buffer.pop_front();
+			buffer[i].buffer.push_back(0);
+		}
+}
+
+quint32 analog_t::trigger_t::state_t::currentData(void)
+{
+	return buffer.at(bufferIndex).buffer.at(position <= 0 ? 0 : position);
 }

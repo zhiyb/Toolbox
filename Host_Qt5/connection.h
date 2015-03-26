@@ -61,13 +61,13 @@ public slots:
 	void loop(void);
 	void quit(void) {exit = true;}
 	void enqueue(const message_t &msg);
-	void requestInfo(void);
+	void requestInfo(void) {enqueue(message_t(CMD_INFO, INVALID_ID));}
 
 private slots:
 	//void pause(void);
 	bool reset(void);
-	void resync(void);
-	void quickResync(void);
+	void resync(void) {writeRepeatedChar(INVALID_ID, 16);}
+	void quickResync(void) {writeRepeatedChar(INVALID_ID, 8);}
 
 private:
 	void pushInfo(info_t *s);

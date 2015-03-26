@@ -108,6 +108,10 @@ struct colour_t : QVector4D {
 
 struct analog_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_ANALOG;}
+
+	struct channel_t;
+	struct data_t;
+
 	void init(void);
 	bool calculate(void);
 	bool updateRequired(void) const;
@@ -115,15 +119,14 @@ struct analog_t : public info_t, public resolution_t {
 
 	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
 
-	struct channel_t;
 	channel_t *findChannel(quint8 id);
 	const channel_t *findChannel(quint8 id) const;
 	int findChannelIndex(quint8 id) const;
 	quint32 channelsCount(bool conf = false) const;
-	bool channelEnabled(int i, bool conf = false) const {return conf ? (channels.at(i).configure.enabled || channels.at(i).id == trigger.configure.source) : (channels.at(i).enabled || channels.at(i).id == trigger.source);}
+	bool channelEnabled(int i, bool conf = false) const {return conf ? (channel.at(i).configure.enabled || channel.at(i).id == trigger.configure.source) : (channel.at(i).enabled || channel.at(i).id == trigger.source);}
 	void setChannelsEnabled(quint32 enabled);
-	quint32 channelsEnabled(bool conf = false) const;
-	quint32 channelsBytes(void) const {return (channels.count() + 7) / 8;}
+	quint32 channelsEnabled(bool conf = false, bool chOnly = false) const;
+	quint32 channelsBytes(void) const {return (channel.count() + 7) / 8;}
 
 	qreal gridTotalTime(bool conf = false) const {return (qreal)grid.count.width() * timebase.value(conf);}
 	qreal gridTotalVoltage(const channel_t *ch) const {return (qreal)grid.count.height() * ch->configure.scale.value();}
@@ -148,6 +151,7 @@ struct analog_t : public info_t, public resolution_t {
 	channel_t *triggerChannel(bool conf = false) {return findChannel(trigger.channel(conf));}
 	const channel_t *triggerChannel(bool conf = false) const {return findChannel(trigger.channel(conf));}
 	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(trigger.channel(conf));}
+	bool triggerDataHandler(const data_t &data);
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
@@ -175,7 +179,7 @@ struct analog_t : public info_t, public resolution_t {
 			scale_t scale;
 		} configure;
 	};
-	QVector<channel_t> channels;
+	QVector<channel_t> channel;
 
 	hwtimer_t timer;
 
@@ -236,13 +240,34 @@ struct analog_t : public info_t, public resolution_t {
 
 		bool view;
 		quint8 source;
+		enum Edge {Rising = 0, Falling} edge;
 		quint32 level;
 		qint32 position;
 
+		struct state_t {
+			void shiftBuffer(void);
+			quint32 currentData(void);
+
+			enum Status {Pre = 0, Waiting, Post, Done} status;
+			quint32 bufferSize;
+			qint32 position;
+			int bufferIndex;
+			struct buffer_t {
+				bool enabled;
+				QVector<quint32> buffer;
+			};
+			QVector<buffer_t> buffer;
+		} state;
+
+		void resetBuffer(const int size);
+		bool beforeEdge(void);
+		state_t::Status dataHandler(const QVector<quint32> &data);
+
 		struct configure_t {
-			configure_t(void) : source(INVALID_ID), dispLevel(0), dispPosition(0), colour(Qt::blue) {}
+			configure_t(void) : source(INVALID_ID), edge(Rising), dispLevel(0), dispPosition(0), colour(Qt::blue) {}
 
 			quint8 source;
+			Edge edge;
 			qreal dispLevel, dispPosition;
 			colour_t colour;
 
