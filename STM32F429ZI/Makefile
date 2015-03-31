@@ -25,7 +25,7 @@ MDLDIR := Middlewares/
 #LIBINC += $(shell find $(MDLDIR) -name *.h -printf "-I%h/\n"|sort|uniq|sed -e 's/lwip\///'|sed -e 's/arch\///')
 
 LIBINC := -IInc
-LIBINC += -I../Inc
+LIBINC += -I../inc
 LIBINC += -IMiddlewares/Third_Party/LwIP/system
 LIBINC += -IMiddlewares/Third_Party/LwIP/src/include
 LIBINC += -IMiddlewares/Third_Party/LwIP/src/include/ipv4
