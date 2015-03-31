@@ -8,6 +8,7 @@
 
 AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(parent)
 {
+	analog = 0;
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	setMinimumSize(MINIMUM_SIZE_SQUARE, MINIMUM_SIZE_SQUARE);
 
@@ -150,6 +151,8 @@ void AnalogWaveform::initializeGL(void)
 
 void AnalogWaveform::resizeGL(int w, int h)
 {
+	if (!analog)
+		return;
 	if (init()) {
 		analog->calculate();
 		if (analog->scanMode() && analog->scanMode(true))
@@ -167,6 +170,9 @@ void AnalogWaveform::resizeGL(int w, int h)
 
 void AnalogWaveform::paintGL(void)
 {
+	if (!analog)
+		return;
+
 	glClearColor(analog->grid.bgColour.x(), analog->grid.bgColour.y(), analog->grid.bgColour.z(), analog->grid.bgColour.w());
 	QMatrix4x4 mv;
 	//mv.scale(0.5, 0.5, 0.5);

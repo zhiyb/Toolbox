@@ -230,8 +230,10 @@ int Connection::readChar(int msec)
 {
 	char c;
 	waitForRead(1, msec);
-	if (con->bytesAvailable() < 1)
+	if (con->bytesAvailable() < 1) {
+		//qDebug(tr("[DEBUG] Connection::readChar: timed out (%1ms)").arg(msec).toLocal8Bit());
 		return -1;
+	}
 	con->read(&c, 1);
 	//qDebug(tr("[DEBUG] Connection::readChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
 	/*if (c == CMD_ACK)
@@ -496,8 +498,10 @@ char Connection::readData(int msec)
 		return -1;
 #endif
 	case -1:
+#if 0
 		if (msec > 100)
 			qDebug(tr("[DEBUG] Connection::readData: -1").toLocal8Bit());
+#endif
 		return -1;
 	default:
 		qDebug(tr("[WARNING] Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
