@@ -9,5 +9,6 @@
 #define APB1_TIMER_CLK	(APB1_CLK * 2)
 #define APB2_CLK	(SYS_CLK / 2)
 #define APB2_TIMER_CLK	(APB2_CLK * 2)
+#define BAUD		UART_BAUD
 
 #endif // INFO_H

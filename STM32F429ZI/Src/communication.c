@@ -3,6 +3,7 @@
 #include "stm32f4xx_hal.h"
 #include "communication.h"
 #include "handles.h"
+#include "info.h"
 
 #define UART_RX_BUFFER_SIZE	64
 static uint8_t buffer[UART_RX_BUFFER_SIZE];
