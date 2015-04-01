@@ -256,6 +256,7 @@ bool analog_t::calculate(void)
 
 void analog_t::update(void)
 {
+	//qDebug() << "[DEBUG] Analog update";
 	timer.update();
 	timebase.update();
 	trigger.update();
@@ -274,6 +275,7 @@ void analog_t::update(void)
 	}
 	trigger.state.bufferIndex = triggerChannelIndex();
 	trigger.resetBuffer(buffer.sizePerChannel);
+	//qDebug() << "[DEBUG] Analog updated";
 }
 
 analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
@@ -317,6 +319,7 @@ void analog_t::trigger_t::reset(void)
 
 void analog_t::trigger_t::resetBuffer(const int size)
 {
+	//qDebug() << "[DEBUG] trigger_t::resetBuffer: " << size << position << (position > size ? position + 1 : size);
 	state.bufferSize = size;
 	state.position = position <= 0 ? position : 0;
 	state.status = position <= 0 ? state_t::Waiting : state_t::Pre;

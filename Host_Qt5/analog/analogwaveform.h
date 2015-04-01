@@ -14,11 +14,13 @@ public:
 
 signals:
 	void updateConfigure(void);
+	void information(QString name, QString content);
 
 protected:
 	void initializeGL();
 	void resizeGL(int w, int h);
 	void paintGL();
+	void timerEvent(QTimerEvent *);
 
 private:
 	void updateIndices(void);
@@ -60,6 +62,13 @@ private:
 	struct stencil_t {
 		QVector<QVector2D> vertices;
 	} stencil;
+	struct counter_t {
+		counter_t(void) {reset();}
+		void reset(const QTime &now = QTime::currentTime());
+
+		QTime prev;
+		int frames;
+	} counter;
 
 	QMatrix4x4 projection;
 	QVector<GLfloat> indices;

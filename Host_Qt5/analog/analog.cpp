@@ -18,6 +18,7 @@ Analog::Analog(Device *dev, analog_t *analog, QWidget *parent) : QWidget(parent)
 	layout->addWidget(waveform = new AnalogWaveform(dev, this), 0, 0, -1, 1);
 	layout->addLayout(channelLayout, 0, 1, -1, 1);
 	rebuild(analog);
+	connect(waveform, SIGNAL(information(QString,QString)), this, SIGNAL(information(QString,QString)));
 	connect(waveform, SIGNAL(updateConfigure()), this, SLOT(updateConfigure()));
 }
 
@@ -102,8 +103,10 @@ void Analog::rebuild(analog_t *analog)
 	AnalogTriggerCtrl *origTrigger = trigger;
 	AnalogTimebaseCtrl *origTimebase = timebase;
 	trigger = new AnalogTriggerCtrl(dev, analog);
+	connect(trigger, SIGNAL(information(QString,QString)), this, SIGNAL(information(QString,QString)));
 	connect(trigger, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	timebase = new AnalogTimebaseCtrl(dev, analog);
+	connect(timebase, SIGNAL(information(QString,QString)), this, SIGNAL(information(QString,QString)));
 	connect(timebase, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	if (!origTrigger)
 		layout->addWidget(trigger, 0, 2);
@@ -122,23 +125,25 @@ void Analog::rebuild(analog_t *analog)
 	for (int i = 0; i < analog->channel.count(); i++) {
 		AnalogChannelCtrl *ctrl = new AnalogChannelCtrl(dev, analog, i);
 		channelLayout->addWidget(ctrl, i % CHANNEL_ROW_COUNT, i / CHANNEL_ROW_COUNT);
+		connect(ctrl, SIGNAL(information(QString,QString)), this, SIGNAL(information(QString,QString)));
 		connect(ctrl, SIGNAL(updateRequest()), this, SLOT(updateConfigure()));
 	}
 }
 
 void Analog::initADC(void)
 {
+	analog->init();
+	analog->calculate();
+
 	message_t msg(CMD_ANALOG, analog->id);
 	// Stop ADC
 	msg.settings.append(message_t::set_t(CTRL_START, 1, 0));
 	// Set data format
-	msg.settings.append(message_t::set_t(CTRL_DATA, 1, analog->scanMode()));
+	msg.settings.append(message_t::set_t(CTRL_DATA, 1, analog->scanMode(true)));
 	// End settings
 	msg.settings.append(message_t::set_t());
 	dev->send(msg);
 
-	analog->init();
-	analog->calculate();
 	//analog->update();
 
 	updateTimer();

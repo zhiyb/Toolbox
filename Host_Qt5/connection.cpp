@@ -16,7 +16,7 @@
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_BAUD	UART_BAUD
-#define DATA_RATE_AVERAGE	5	// Need to be divisible by 60
+#define REPORT_INTERVAL		3	// Need to be divisible by 60
 
 ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
 {
@@ -200,11 +200,32 @@ bool Connection::waitForReadAll(int count, int msec)
 	return count != 0;
 }
 
+void Connection::reportData(void)
+{
+	QTime now = QTime::currentTime();
+	int sec = counter.prev.secsTo(now);
+	int msec = counter.prev.msecsTo(now);
+
+	// Data transmission rate
+	if (sec) {
+		emit information("RATE_TX", tr("Tx: %1 bytes/s (%2 packages/s)").arg((float)counter.tx / msec * 1000).arg((float)counter.txPackage / msec * 1000));
+		emit information("RATE_RX", tr("Rx: %1 bytes/s (%2 packages/s)").arg((float)counter.rx / msec * 1000).arg((float)counter.rxPackage / msec * 1000));
+		counter.reset(now);
+	}
+
+	// Analog capture infomation
+	QVector<info_t *> infos = findInfos(CMD_ANALOG);
+	while (!infos.isEmpty()) {
+		analog_t *analog = (analog_t *)infos.takeFirst();
+		emit information(QString("ANALOG%1_INFO").arg(analog->id), tr("%1: %2 S/s, %3 S/f").arg(analog->name).arg(analog->timer.frequency()).arg(analog->buffer.sizePerChannel));
+	}
+}
+
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
 	//qDebug(tr("[DEBUG] Connection::writeChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
-	count.tx++;
+	counter.tx++;
 }
 
 void Connection::writeRepeatedChar(const char c, const qint64 size)
@@ -216,14 +237,14 @@ void Connection::writeRepeatedChar(const char c, const qint64 size)
 void Connection::write(QByteArray &data)
 {
 	con->write(data);
-	count.tx += data.count();
+	counter.tx += data.count();
 }
 
 void Connection::writeValue(const quint32 value, const quint32 bytes)
 {
 	//qDebug(tr("[DEBUG] Connection::writeValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
 	con->write((char *)&value, bytes);
-	count.tx += bytes;
+	counter.tx += bytes;
 }
 
 int Connection::readChar(int msec)
@@ -236,9 +257,7 @@ int Connection::readChar(int msec)
 	}
 	con->read(&c, 1);
 	//qDebug(tr("[DEBUG] Connection::readChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
-	/*if (c == CMD_ACK)
-		qDebug("ACK");*/
-	count.rx++;
+	counter.rx++;
 	return (quint8)c;
 }
 
@@ -249,7 +268,7 @@ quint32 Connection::readValue(const quint32 bytes, int msec)
 	if (con->bytesAvailable() < bytes)
 		return -1;
 	con->read((char *)&value, bytes);
-	count.rx += bytes;
+	counter.rx += bytes;
 	//qDebug(tr("[DEBUG] Connection::readValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
 	return value;
 }
@@ -270,7 +289,6 @@ QString Connection::readString(int msec)
 void Connection::writeMessage(message_t &msg)
 {
 	//qDebug(tr("[DEBUG] Sending message, sequence: %1, command: %2, ID: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
-	//quickResync();
 send:
 	writeChar(msg.command);
 	waitForWrite();
@@ -295,26 +313,29 @@ send:
 			break;
 		writeValue(set.value, set.bytes);
 	}
-	this->count.txPackage++;
+	this->counter.txPackage++;
 	if (msg.update.id != INVALID_ID) {
+		//qDebug(tr("[DEBUG] Message sent, update %1").arg(msg.update.id).toLocal8Bit());
 		info_t *info = (analog_t *)findInfo(CMD_ANALOG, msg.update.id);
 		if (!info)
 			emit error(tr("No matching info data ID: %1").arg(msg.update.id));
 		switch (info->type()) {
 		case CMD_ANALOG:
 			((analog_t *)info)->update();
+			reportData();
 			break;
 		default:
 			emit error(tr("Update not supported for type: %1").arg(info->type()));
 		}
 	}
+	//qDebug(tr("[DEBUG] Message sent").toLocal8Bit());
 	emit messageSent(msg.sequence);
 }
 
 bool Connection::reset(void)
 {
 	//qDebug() << "Connection::reset";
-	resync();
+	//resync();
 	writeRepeatedChar(CMD_RESET, 16);
 	waitForWrite();
 	waitForReadAll(3);
@@ -339,9 +360,21 @@ void Connection::pushInfo(info_t *s)
 	infos.append(s);
 }
 
+QVector<info_t *> Connection::findInfos(const quint8 type)
+{
+	QVector<info_t *> infos;
+	for (int i = 0; i != this->infos.count(); i++) {
+		info_t *info = this->infos[i];
+		//qDebug(tr("Matching: %1, %2").arg(type).arg(info->type()).toLocal8Bit());
+		if (info->type() == type)
+			infos.append(info);
+	}
+	return infos;
+}
+
 info_t *Connection::findInfo(const quint8 type, const quint8 id)
 {
-	for (int i = 0; i < infos.count(); i++) {
+	for (int i = 0; i != infos.count(); i++) {
 		info_t *info = infos[i];
 		//qDebug(tr("Matching: %1(%2), %3(%4)").arg(type).arg((quint32)id).arg(info->type()).arg((quint32)info->id).toLocal8Bit());
 		if (info->type() == type && info->id == id)
@@ -439,6 +472,7 @@ analog_t *Connection::readAnalog(void)
 	analog->buffer.size = readValue(4);
 	analog->timer = readTimer();
 	pushInfo(analog);
+	//qDebug() << "[DEBUG] readAnalog:" << analog;
 	return analog;
 }
 
@@ -471,12 +505,14 @@ analog_t::data_t Connection::readAnalogData(void)
 			data.data[i] = readValue(analog->bytes());
 		break;
 	}
+	//qDebug(tr("[DEBUG] Connection::readAnalogData: %1, done").arg(data.data.size()).toLocal8Bit());
 	return data;
 }
 
 char Connection::readData(int msec)
 {
 	int c = readChar(msec);
+	//qDebug(tr("[DEBUG] readData: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
@@ -507,24 +543,24 @@ char Connection::readData(int msec)
 		qDebug(tr("[WARNING] Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
 		return c;
 	}
-	count.rxPackage++;
+	counter.rxPackage++;
 	return 0;
 }
 
 void Connection::loop(void)
 {
-	static bool rateDisplay = true;
+	static bool report = true;
 	bool send = false;
 	message_t msg;
 	while (!exit) {
 		//qDebug() << "loop.";
-		if (QTime::currentTime().second() % DATA_RATE_AVERAGE) {
-			if (rateDisplay) {
-				count.report();
-				rateDisplay = false;
+		if (QTime::currentTime().second() % REPORT_INTERVAL) {
+			if (report) {
+				reportData();
+				report = false;
 			}
 		} else
-			rateDisplay = true;
+			report = true;
 		if (queueLock.tryLock()) {
 			if (!queue.isEmpty()) {
 				msg = queue.dequeue();
@@ -550,15 +586,9 @@ void Connection::enqueue(const message_t &msg)
 	queueLock.unlock();
 }
 
-void Connection::count_t::report(void)
+void Connection::counter_t::reset(const QTime &now)
 {
-	int elapsed = prev.secsTo(QTime::currentTime());
-	if (!elapsed)
-		return;
-	prev = QTime::currentTime();
-	qDebug(tr("[INFO] Data rate: tx: %1 bytes/s (%2 packages/s), rx: %3 bytes/s (%4 packages/s)")\
-	       .arg((float)tx / (float)elapsed).arg((float)txPackage / (float)elapsed)\
-	       .arg((float)rx / (float)elapsed).arg((float)rxPackage / (float)elapsed).toLocal8Bit());
+	prev = now;
 	txPackage = 0;
 	rxPackage = 0;
 	tx = 0;

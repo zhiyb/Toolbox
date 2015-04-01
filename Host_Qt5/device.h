@@ -21,6 +21,7 @@ signals:
 	void controller(controller_t *s);
 	void analog(analog_t *s);
 	void messageSent(quint32 sequence);
+	void information(QString name, QString content);
 
 public slots:
 	void send(message_t s) {con->enqueue(s);}

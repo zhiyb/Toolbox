@@ -11,11 +11,14 @@ MainWindow::MainWindow(QWidget *parent)
 	vLayout->addLayout(dispLayout = new QVBoxLayout, 3);
 	vLayout->addLayout(layout = new QHBoxLayout, 1);
 
+	layout->addWidget(information = new Information);
+
 	dev = new Device(this);
 	gbWaveforms = 0;
 	//setWindowTitle(dev->name());
 	setAttribute(Qt::WA_QuitOnClose);
 
+	connect(dev, SIGNAL(information(QString,QString)), information, SLOT(information(QString,QString)));
 	connect(dev, SIGNAL(deviceNameChanged(QString)), this, SLOT(setWindowTitle(QString)));
 	connect(dev, SIGNAL(controller(controller_t *)), this, SLOT(controller(controller_t *)));
 	connect(dev, SIGNAL(analog(analog_t *)), this, SLOT(analog(analog_t *)));
@@ -57,6 +60,7 @@ void MainWindow::controller(controller_t *s)
 	Controller *w = findChild<Controller *>(QString::number(s->id), Qt::FindDirectChildrenOnly);
 	if (!w) {
 		Controller *c = new Controller(s);
+		connect(c, SIGNAL(information(QString,QString)), information, SLOT(information(QString,QString)));
 		connect(c, SIGNAL(message(message_t)), dev, SLOT(send(message_t)));
 		connect(dev, SIGNAL(messageSent(quint32)), c, SLOT(messageSent(quint32)));
 		layout->addWidget(c);
@@ -69,7 +73,7 @@ void MainWindow::analog(analog_t *s)
 	if (!gbWaveforms) {
 		gbWaveforms = new QGroupBox(tr("Waveforms"), this);
 		new QVBoxLayout(gbWaveforms);
-		layout->insertWidget(0, gbWaveforms);
+		layout->insertWidget(1, gbWaveforms);
 	}
 	Analog *analogCtrl = findChild<Analog *>(QString::number(s->id));
 	if (analogCtrl)
@@ -78,6 +82,7 @@ void MainWindow::analog(analog_t *s)
 		analogCtrl = new Analog(dev, s);
 		dispLayout->addWidget(analogCtrl);
 		analogCtrl->setObjectName(QString::number(s->id));
+		connect(analogCtrl, SIGNAL(information(QString,QString)), information, SLOT(information(QString,QString)));
 		connect(dev, SIGNAL(messageSent(quint32)), analogCtrl, SLOT(messageSent(quint32)));
 	}
 	QPushButton *pbWaveform = gbWaveforms->findChild<QPushButton *>(QString::number(s->id));

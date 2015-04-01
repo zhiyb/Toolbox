@@ -5,6 +5,7 @@
 #define MINIMUM_SIZE_SQUARE	480
 #define WAVE_YT_DRAW_MODE	GL_LINE_STRIP
 //#define WAVE_YT_DRAW_MODE	GL_POINTS
+#define REPORT_INTERVAL		3
 
 AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(parent)
 {
@@ -26,6 +27,7 @@ AnalogWaveform::AnalogWaveform(Device *dev, QWidget *parent) : QOpenGLWidget(par
 
 void AnalogWaveform::setAnalog(analog_t *analog)
 {
+	//qDebug() << "[DEBUG] setAnalog:" << analog;
 	this->analog = analog;
 	init();
 }
@@ -147,6 +149,8 @@ void AnalogWaveform::initializeGL(void)
 	wave.locationYT.offset = glGetUniformLocation(wave.programYT, "offset");
 	wave.locationYT.scale = glGetUniformLocation(wave.programYT, "scale");
 	//qDebug() << wave.programYT << wave.vshYT << fsh << wave.locationYT.colour << wave.locationYT.data << wave.locationYT.frequency << wave.locationYT.hCount << wave.locationYT.index << wave.locationYT.maxValue << wave.locationYT.modelView << wave.locationYT.projection << wave.locationYT.timebase;
+
+	startTimer(REPORT_INTERVAL * 1000);
 }
 
 void AnalogWaveform::resizeGL(int w, int h)
@@ -172,6 +176,7 @@ void AnalogWaveform::paintGL(void)
 {
 	if (!analog)
 		return;
+	counter.frames++;
 
 	glClearColor(analog->grid.bgColour.x(), analog->grid.bgColour.y(), analog->grid.bgColour.z(), analog->grid.bgColour.w());
 	QMatrix4x4 mv;
@@ -258,6 +263,19 @@ void AnalogWaveform::paintGL(void)
 	glClear(GL_STENCIL_BUFFER_BIT);
 }
 
+void AnalogWaveform::timerEvent(QTimerEvent *)
+{
+	QTime now = QTime::currentTime();
+	int sec = counter.prev.secsTo(now);
+	int msec = counter.prev.msecsTo(now);
+
+	// FPS
+	if (sec) {
+		emit information(QString("ANALOG%1_FPS").arg(analog->id), tr("%1 disp: %2 fps").arg(analog->name).arg((qreal)counter.frames / msec * 1000.f));
+		counter.reset(now);
+	}
+}
+
 void AnalogWaveform::updateIndices()
 {
 	while (indices.count() < (int)analog->buffer.sizePerChannel)
@@ -317,4 +335,10 @@ GLuint AnalogWaveform::createProgram(GLuint vsh, GLuint fsh)
 	glDeleteProgram(program);
 	throw QString(log);
 	return 0;
+}
+
+void AnalogWaveform::counter_t::reset(const QTime &now)
+{
+	prev = now;
+	frames = 0;
 }

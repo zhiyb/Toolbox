@@ -1,5 +1,5 @@
-#ifndef TIMEBASECTRL_H
-#define TIMEBASECTRL_H
+#ifndef ANALOGTIMEBASECTRL_H
+#define ANALOGTIMEBASECTRL_H
 
 #include <QtWidgets>
 #include "scalevalue.h"
@@ -16,6 +16,7 @@ public:
 signals:
 	void updateRequest(void);
 	void updateDisplay(void);
+	void information(QString name, QString content);
 
 public slots:
 
@@ -28,4 +29,4 @@ private:
 	analog_t *analog;
 };
 
-#endif // TIMEBASECTRL_H
+#endif // ANALOGTIMEBASECTRL_H

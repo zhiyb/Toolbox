@@ -73,6 +73,7 @@ struct resolution_t {
 struct hwtimer_t : public info_t, public resolution_t {
 	virtual quint8 type(void) const {return CMD_TIMER;}
 
+	hwtimer_t(void) : clockFrequency(0), value(0) {}
 	bool setFrequency(const qreal freq);
 	void update(void) {value = configure.value;}
 	float frequency(bool conf = false) const {return (float)clockFrequency / (float)(conf ? configure.value : value);}
@@ -81,6 +82,8 @@ struct hwtimer_t : public info_t, public resolution_t {
 	quint32 value;
 
 	struct configure_t {
+		configure_t(void) : value(0) {}
+
 		quint32 value;
 	} configure;
 };
@@ -233,7 +236,7 @@ struct analog_t : public info_t, public resolution_t {
 	} timebase;
 
 	struct trigger_t {
-		trigger_t(void) : view(false) {update();}
+		trigger_t(void) : view(false), source(INVALID_ID), edge(Rising), level(0), position(0) {update();}
 		quint8 channel(bool conf = false) const {return conf ? configure.source : source;}
 		bool enabled(bool conf = false) const {return channel(conf) != INVALID_ID;}
 		bool sourceUpdateRequired(void) const {return source != configure.source;}
@@ -248,6 +251,7 @@ struct analog_t : public info_t, public resolution_t {
 		qint32 position;
 
 		struct state_t {
+			state_t(void) : status(Pre), bufferSize(0), position(0), bufferIndex(-1) {}
 			void shiftBuffer(void);
 			quint32 currentData(void);
 
@@ -267,7 +271,7 @@ struct analog_t : public info_t, public resolution_t {
 		state_t::Status dataHandler(const QVector<quint32> &data);
 
 		struct configure_t {
-			configure_t(void) : source(INVALID_ID), edge(Rising), dispLevel(0), dispPosition(0), colour(Qt::blue) {}
+			configure_t(void) : source(INVALID_ID), edge(Rising), dispLevel(0), dispPosition(0), colour(Qt::blue), level(0), position(0) {}
 
 			quint8 source;
 			Edge edge;

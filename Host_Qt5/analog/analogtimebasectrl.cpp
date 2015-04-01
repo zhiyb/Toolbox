@@ -1,4 +1,4 @@
-#include "timebasectrl.h"
+#include "analogtimebasectrl.h"
 
 AnalogTimebaseCtrl::AnalogTimebaseCtrl(Device *dev, analog_t *analog, QWidget *parent) : QGroupBox(parent)
 {

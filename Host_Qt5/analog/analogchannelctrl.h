@@ -16,6 +16,7 @@ public:
 
 signals:
 	void updateRequest(void);
+	void information(QString name, QString content);
 
 public slots:
 	void updateValue(void);

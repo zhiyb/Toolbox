@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QtWidgets>
 #include "device.h"
+#include "information.h"
 
 class MainWindow : public QMainWindow
 {
@@ -26,6 +27,7 @@ private slots:
 private:
 	bool init;
 	Device *dev;
+	Information *information;
 	QVBoxLayout *dispLayout;
 	QHBoxLayout *layout;
 	QGroupBox *gbWaveforms;

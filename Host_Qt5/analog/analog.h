@@ -5,7 +5,7 @@
 #include "structures.h"
 #include "device.h"
 #include "analogwaveform.h"
-#include "timebasectrl.h"
+#include "analogtimebasectrl.h"
 #include "analogtriggerctrl.h"
 
 class Analog : public QWidget
@@ -16,6 +16,7 @@ public:
 	void rebuild(analog_t *analog);
 
 signals:
+	void information(QString name, QString content);
 
 public slots:
 	void activate(void);

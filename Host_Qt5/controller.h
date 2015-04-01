@@ -15,6 +15,7 @@ public:
 
 signals:
 	void message(message_t s);
+	void information(QString name, QString content);
 
 public slots:
 	void messageSent(quint32 sequence) {Q_UNUSED(sequence);}

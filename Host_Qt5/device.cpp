@@ -11,6 +11,7 @@ Device::Device(QObject *parent) :
 	//qRegisterMetaType<analog_t>("analog_t");
 	qRegisterMetaType<analog_t::data_t>("analog_t::data_t");
 	con = new Connection;
+	connect(con, SIGNAL(information(QString,QString)), this, SIGNAL(information(QString,QString)));
 }
 
 Device::~Device(void)

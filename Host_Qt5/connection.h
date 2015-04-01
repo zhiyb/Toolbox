@@ -56,6 +56,7 @@ signals:
 	void analogData(analog_t::data_t s);
 	void info(info_t *s);
 	void messageSent(quint32 sequence);
+	void information(QString name, QString content);
 
 public slots:
 	void loop(void);
@@ -71,6 +72,7 @@ private slots:
 
 private:
 	void pushInfo(info_t *s);
+	QVector<info_t *> findInfos(const quint8 type);
 	info_t *findInfo(const quint8 type, const quint8 id);
 	device_t readDeviceInfo(void);
 	controller_t *readController(void);
@@ -88,17 +90,18 @@ private:
 	QString readString(int msec = COMMUNICATION_WAIT);
 	void waitForWrite(int msec = COMMUNICATION_WAIT);
 	void waitForRead(const qint64 size, int msec = COMMUNICATION_WAIT);
-	bool waitForReadAll(int count = -1, int msec = COMMUNICATION_WAIT);
+	bool waitForReadAll(int counter = -1, int msec = COMMUNICATION_WAIT);
+	void reportData(void);
 
 	enum Types {Network = 0, SerialPort = 1};
 
-	struct count_t {
-		count_t(void) : prev(QTime::currentTime()), txPackage(0), rxPackage(0), tx(0), rx(0) {}
-		void report(void);
+	struct counter_t {
+		counter_t(void) {reset();}
+		void reset(const QTime &now = QTime::currentTime());
 
 		QTime prev;
 		int txPackage, rxPackage, tx, rx;
-	} count;
+	} counter;
 
 	QIODevice *con;
 	QQueue<message_t> queue;
