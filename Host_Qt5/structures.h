@@ -119,6 +119,7 @@ struct analog_t : public info_t, public resolution_t {
 	bool calculate(void);
 	bool updateRequired(void) const;
 	void update(void);
+	void updateBufferInfo(void);
 
 	bool scanMode(bool conf = false) const {return timer.frequency(conf) * channelsCount(conf) < scanFrequency;}
 
@@ -126,7 +127,7 @@ struct analog_t : public info_t, public resolution_t {
 	const channel_t *findChannel(quint8 id) const;
 	int findChannelIndex(quint8 id) const;
 	quint32 channelsCount(bool conf = false) const;
-	bool channelEnabled(int i, bool conf = false) const {return conf ? (channel.at(i).configure.enabled || channel.at(i).id == trigger.configure.source) : (channel.at(i).enabled || channel.at(i).id == trigger.source);}
+	bool channelEnabled(int i, bool conf = false) const {return conf ? (channel.at(i).configure.enabled() || channel.at(i).id == trigger.configure.source) : (channel.at(i).enabled || channel.at(i).id == trigger.source);}
 	void setChannelsEnabled(quint32 enabled);
 	quint32 channelsEnabled(bool conf = false, bool chOnly = false) const;
 	quint32 channelsBytes(void) const {return (channel.count() + 7) / 8;}
@@ -134,35 +135,34 @@ struct analog_t : public info_t, public resolution_t {
 	qreal gridTotalTime(bool conf = false) const {return (qreal)grid.count.width() * timebase.value(conf);}
 	qreal gridTotalVoltage(const channel_t *ch) const {return (qreal)grid.count.height() * ch->configure.scale.value();}
 	qreal gridTotalVoltage(quint8 id) const {return gridTotalVoltage(findChannel(id));}
-	// Convert screen coordinate to (count, ADC)
-	int countFromScreenX(qreal x, bool conf = false) const;
-	qreal voltageFromScreenY(qreal y, const channel_t *ch) const;
-	qreal voltageFromScreenY(qreal y, quint8 id) const {return voltageFromScreenY(y, findChannel(id));}
-	int adcFromScreenY(qreal y, const channel_t *ch) const {return voltageFromScreenY(y, ch) / ch->reference * maximum();}
-	int adcFromScreenY(qreal y, quint8 id) const {return adcFromScreenY(y, findChannel(id));}
-	QPoint fromScreen(QPointF pos, const channel_t *ch, bool conf = false) const {return QPoint(countFromScreenX(pos.x(), conf), adcFromScreenY(pos.y(), ch));}
-	QPoint fromScreen(QPointF pos, quint8 id, bool conf = false) const {return fromScreen(pos, findChannel(id), conf);}
-	// Convert (count, ADC) to screen coordinate
-	qreal countToScreenX(int cnt, bool conf = false) const;
-	qreal voltageToScreenY(qreal voltage, const channel_t *ch) const;
-	qreal adcToScreenY(int adc, const channel_t *ch) const {return voltageToScreenY((qreal)adc / maximum() * ch->reference + ch->totalOffset(), ch);}
-	qreal adcToScreenY(int adc, quint8 id) const {return adcToScreenY(adc, findChannel(id));}
-	QPointF toScreen(QPoint data, const channel_t *ch, bool conf = false) const {return QPointF(countToScreenX(data.x(), conf), adcToScreenY(data.y(), ch));}
-	QPointF toScreen(QPoint data, quint8 id, bool conf = false) const {return toScreen(data, findChannel(id), conf);}
+	// Convert screen x-coordinate to buffer index
+	int screenXToIndex(qreal x, bool conf = false) const;
+	// Convert buffer index to screen x-coordinate
+	qreal indexToScreenX(int cnt, bool conf = false) const;
 
 	bool triggerValid(bool conf = false) const;
 	channel_t *triggerChannel(bool conf = false) {return findChannel(trigger.channel(conf));}
 	const channel_t *triggerChannel(bool conf = false) const {return findChannel(trigger.channel(conf));}
 	int triggerChannelIndex(bool conf = false) const {return findChannelIndex(trigger.channel(conf));}
-	bool triggerDataHandler(const data_t &data);
+	bool dataHandler(const data_t &data);
 
 	QString name;
 	quint32 scanFrequency, maxFrequency;
 
 	struct channel_t {
 		channel_t(void);
+		void resetBufferInfo(void);
 		void update(const int bufferSize);
+		void updateMode(void) {updateMode(enabled);}
+		void updateMode(const bool e);
 		qreal totalOffset(void) const {return offset + configure.displayOffset;}
+		qreal adcToVoltage(const qint32 adc) const;
+		qint32 voltageToADC(const qreal voltage) const;
+		qreal voltageToScreenY(const qreal voltage) const;
+		qreal screenYToVoltage(const qreal y) const;
+		qreal adcToScreenY(const qint32 adc) const {return voltageToScreenY(adcToVoltage(adc));}
+		qint32 screenYToADC(const qreal y) const {return voltageToADC(screenYToVoltage(y));}
+
 		static const QColor defaultColours[DEFAULT_CHANNEL_COLOURS];
 
 		// Device information
@@ -170,13 +170,21 @@ struct analog_t : public info_t, public resolution_t {
 		float reference, offset;
 		QString name;
 		bool enabled;
+		analog_t *analog;
 
 		// Buffer space
-		QVector<quint32> buffer;
+		QVector<qint32> buffer;
+		struct bufferInfo_t {
+			qreal mean;
+			qint32 min, max;
+		} bufferInfo;
 
 		// Configure
 		struct configure_t {
-			bool enabled;
+			configure_t(void) : mode(DC), displayOffset(0) {}
+			bool enabled(void) const {return mode != Off;}
+
+			enum Modes {Off = 0, DC, AC} mode;
 			qreal displayOffset;
 			colour_t colour;
 			scale_t scale;
@@ -261,7 +269,7 @@ struct analog_t : public info_t, public resolution_t {
 			int bufferIndex;
 			struct buffer_t {
 				bool enabled;
-				QVector<quint32> buffer;
+				QVector<qint32> buffer;
 			};
 			QVector<buffer_t> buffer;
 		} state;

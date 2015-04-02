@@ -84,7 +84,7 @@ void analog_t::setChannelsEnabled(quint32 enabled)
 {
 	quint32 mask = 1;
 	for (int i = 0; i < channel.count(); i++) {
-		channel[i].enabled = channel[i].configure.enabled = enabled & mask;
+		channel[i].updateMode(enabled & mask);
 		mask <<= 1;
 	}
 }
@@ -93,43 +93,23 @@ quint32 analog_t::channelsEnabled(bool conf, bool chOnly) const
 {
 	quint32 enabled = 0, mask = 1;
 	for (int i = 0; i < channel.count(); i++) {
-		if (chOnly ? (conf ? channel.at(i).configure.enabled : channel.at(i).enabled) : channelEnabled(i, conf))
+		if (chOnly ? (conf ? channel.at(i).configure.enabled() : channel.at(i).enabled) : channelEnabled(i, conf))
 			enabled |= mask;
 		mask <<= 1;
 	}
 	return enabled;
 }
 
-int analog_t::countFromScreenX(qreal x, bool conf) const
+int analog_t::screenXToIndex(qreal x, bool conf) const
 {
 	//	  Screen		       Grid		      Time		     Count
 	return (x + 1.f) * (grid.count.width() / 2) * timebase.value(conf) * timer.frequency(conf);
 }
 
-qreal analog_t::voltageFromScreenY(qreal y, const analog_t::channel_t *ch) const
-{
-	if (!ch) {
-		qDebug(QObject::tr("[ERROR] analog_t::voltageFromScreenY: Invalid channel").toLocal8Bit());
-		return 0;
-	}
-	//Screen			Grid					       Voltage
-	return y * (grid.count.height() / 2) * ch->configure.scale.value() - ch->totalOffset();
-}
-
-qreal analog_t::countToScreenX(int cnt, bool conf) const
+qreal analog_t::indexToScreenX(int cnt, bool conf) const
 {
 	//	    Count		     Time		    Grid			   Screen
 	return (qreal)cnt / timer.frequency(conf) / timebase.value(conf) / (grid.count.width() / 2) - 1.f;
-}
-
-qreal analog_t::voltageToScreenY(qreal voltage, const analog_t::channel_t *ch) const
-{
-	if (!ch) {
-		qDebug(QObject::tr("[ERROR] analog_t::voltageToScreenY: Invalid channel").toLocal8Bit());
-		return 0.f;
-	}
-	//     Voltage			        Grid			  Screen
-	return voltage / ch->configure.scale.value() / (grid.count.height() / 2);
 }
 
 bool analog_t::triggerValid(bool conf) const
@@ -138,25 +118,40 @@ bool analog_t::triggerValid(bool conf) const
 	return level >= 0 && level <= (int)maximum();
 }
 
-bool analog_t::triggerDataHandler(const data_t &data)
+bool analog_t::dataHandler(const data_t &data)
 {
+	if (data.id != id)
+		return false;
+	bool trig = trigger.enabled() && triggerValid();
+	//qDebug(tr("[DEBUG] [%1] Analog data type: %2, count: %3").arg(QTime::currentTime().toString()).arg(data.type).arg(data.data.count()).toLocal8Bit());
+
 	quint32 count = 0;
 	switch (data.type) {
 	case CTRL_DATA:
 		if ((quint32)data.data.count() != channelsCount()) {
-			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(channelsCount()).toLocal8Bit());
 			return false;
 		}
-		if (trigger.dataHandler(data.data) != trigger_t::state_t::Done)
-			return false;
-		for (int i = 0; i < channel.count(); i++)
-			channel[i].buffer = trigger.state.buffer[i].buffer;
-		buffer.validSize = buffer.sizePerChannel;
-		//qDebug(QObject::tr("[DEBUG] triggerDataHandler: return true").toLocal8Bit());
-		return true;
+		if (trig) {
+			if (trigger.dataHandler(data.data) != trigger_t::state_t::Done)
+				return false;
+			for (int i = 0; i < channel.count(); i++)
+				channel[i].buffer = trigger.state.buffer[i].buffer;
+			buffer.validSize = buffer.sizePerChannel;
+		} else {
+			for (int i = 0; i < channel.count(); i++)
+				if (channelEnabled(i, false))
+					channel[i].buffer[buffer.position] = data.data.at(count++);
+			buffer.position++;
+			if (buffer.validSize < buffer.position)
+				buffer.validSize = buffer.position;
+			if (buffer.position == buffer.sizePerChannel)
+				buffer.position = 0;
+		}
+		break;
 	case CTRL_FRAME:
 		if ((quint32)data.data.count() != channelsCount() * buffer.sizePerChannel) {
-			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(analog->channelsCount()).toLocal8Bit());
+			//qDebug(tr("[DEBUG] Data size mismatch: %1/%2, ignored").arg(data.data.count()).arg(channelsCount()).toLocal8Bit());
 			return false;
 		}
 		for (int i = 0; i < channel.count(); i++)
@@ -166,9 +161,12 @@ bool analog_t::triggerDataHandler(const data_t &data)
 				if (channelEnabled(i, false))
 					channel[i].buffer[pos] = data.data.at(count++);
 		buffer.validSize = buffer.sizePerChannel;
-		return true;
+		break;
+	default:
+		return false;
 	}
-	return false;
+	updateBufferInfo();
+	return true;
 }
 
 bool analog_t::updateRequired() const
@@ -245,9 +243,8 @@ bool analog_t::calculate(void)
 
 	// Calculate trigger parameters
 	if (trigger.configure.source != INVALID_ID) {
-		QPoint pos = fromScreen(QPointF(trigger.configure.dispPosition, trigger.configure.dispLevel), findChannel(trigger.configure.source), true);
-		trigger.configure.level = pos.y();
-		trigger.configure.position = pos.x();
+		trigger.configure.level = findChannel(trigger.channel(true))->screenYToADC(trigger.configure.dispLevel);
+		trigger.configure.position = screenXToIndex(trigger.configure.dispPosition, true);
 	}
 
 	//qDebug() << scanModeConfigure() << channelsCountConfigure() << timer.frequencyConfigure() << timer.configure.value << timebase.configure.scale.value() << buffer.configure.sizePerChannel;
@@ -261,7 +258,7 @@ void analog_t::update(void)
 	timebase.update();
 	trigger.update();
 	for (int i = 0; i < channel.count(); i++)
-		channel[i].enabled = channel[i].configure.enabled;
+		channel[i].enabled = channel[i].configure.enabled();
 	if (scanMode())
 		buffer.sizePerChannel = gridTotalTime() * timer.frequency();
 	else
@@ -278,6 +275,28 @@ void analog_t::update(void)
 	//qDebug() << "[DEBUG] Analog updated";
 }
 
+void analog_t::updateBufferInfo()
+{
+	for (int idx = 0; idx < channel.count(); idx++) {
+		if (!channelEnabled(idx))
+			continue;
+		channel_t &ch = channel[idx];
+		qint32 min = INT32_MAX, max = INT32_MIN;
+		quint64 sum = 0;
+		for (quint32 i = 0; i < buffer.validSize; i++) {
+			qint32 data = ch.buffer.at(i);
+			sum += data;
+			if (data < min)
+				min = data;
+			if (data > max)
+				max = data;
+		}
+		ch.bufferInfo.mean = (qreal)sum / buffer.validSize;
+		ch.bufferInfo.min = min;
+		ch.bufferInfo.max = max;
+	}
+}
+
 analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 {
 	QColor clr;
@@ -286,14 +305,51 @@ analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 	else
 		clr = QColor(qrand() % 256, qrand() % 256, qrand() % 256);
 	configure.colour = clr;
-	configure.displayOffset = 0;
-	configure.enabled = enabled;
+}
+
+void analog_t::channel_t::resetBufferInfo(void)
+{
+	bufferInfo.mean = analog->maximum();
+	bufferInfo.min = 0;
+	bufferInfo.max = analog->maximum();
 }
 
 void analog_t::channel_t::update(const int bufferSize)
 {
 	//enabled = configure.enabled;
 	buffer.resize(bufferSize);
+	resetBufferInfo();
+}
+
+void analog_t::channel_t::updateMode(const bool e)
+{
+	enabled = e;
+	if (configure.enabled() && e)
+		configure.mode = channel_t::configure_t::Off;
+	else if (!configure.enabled() && e)
+		configure.mode = channel_t::configure_t::DC;
+}
+
+qreal analog_t::channel_t::adcToVoltage(const qint32 adc) const
+{
+	return ((qreal)adc - (configure.mode == configure_t::AC ? bufferInfo.mean : 0)) / analog->maximum() * reference + totalOffset();
+}
+
+qint32 analog_t::channel_t::voltageToADC(const qreal voltage) const
+{
+	return voltage / reference * analog->maximum() + (configure.mode == configure_t::AC ? bufferInfo.mean : 0);
+}
+
+qreal analog_t::channel_t::voltageToScreenY(const qreal voltage) const
+{
+	//     Voltage			    Grid			      Screen
+	return voltage / configure.scale.value() / (analog->grid.count.height() / 2);
+}
+
+qreal analog_t::channel_t::screenYToVoltage(const qreal y) const
+{
+	//Screen				Grid				       Voltage
+	return y * (analog->grid.count.height() / 2) * configure.scale.value() - totalOffset();
 }
 
 void analog_t::buffer_t::reset(void)

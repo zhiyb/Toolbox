@@ -465,6 +465,7 @@ analog_t *Connection::readAnalog(void)
 		channel.name = readString();
 		channel.reference = conv::rawUInt32ToFloat(readValue(4));
 		channel.offset = conv::rawUInt32ToFloat(readValue(4));
+		channel.analog = analog;
 		analog->channel.append(channel);
 	}
 	analog->trigger.state.buffer.resize(analog->channel.size());

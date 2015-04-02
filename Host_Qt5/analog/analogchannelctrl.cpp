@@ -7,27 +7,36 @@ AnalogChannelCtrl::AnalogChannelCtrl(Device *dev, analog_t *analog, quint32 chan
 	this->channel = &analog->channel[channelNum];
 	setTitle(tr("%2/%1").arg(channel->name).arg(channel->id));
 
-	QGridLayout *layout = new QGridLayout(this);
+	QHBoxLayout *hlayout = new QHBoxLayout(this);
+	QVBoxLayout *layout = new QVBoxLayout;
+	hlayout->addLayout(layout);
+	layout->addWidget(mode = new QComboBox);
+	layout->addWidget(colour = new ColourSelection(channel->configure.colour));
+	layout->addWidget(scale = new ScaleValue(&channel->configure.scale, tr("V/div")));
 
-	layout->addWidget(enabled = new QCheckBox(tr("Enabled")), 0, 0);
-	layout->addWidget(lOffset = new QLabel, 0, 1);
-	layout->addWidget(offset = new Dial, 1, 1, 2, 1);
-	layout->addWidget(colour = new ColourSelection(channel->configure.colour), 1, 0);
-	layout->addWidget(scale = new ScaleValue(&channel->configure.scale, tr("V/div")), 2, 0);
+	hlayout->addLayout(layout = new QVBoxLayout);
+	layout->addWidget(lOffset = new QLabel);
+	layout->addWidget(offset = new Dial);
 
+	mode->setEditable(false);
+	mode->addItem(tr("Off"));
+	mode->addItem(tr("DC"));
+	mode->addItem(tr("AC"));
+	mode->setCurrentIndex(analog_t::channel_t::configure_t::DC);
 	lOffset->setAlignment(Qt::AlignCenter);
 
+	connect(mode, SIGNAL(currentIndexChanged(int)), this, SLOT(modeChanged(int)));
 	connect(offset, SIGNAL(moved(float)), this, SLOT(offsetMoved(float)));
 	connect(offset, SIGNAL(rightClicked()), this, SLOT(offsetReset()));
 	connect(colour, SIGNAL(colourChanged(QColor)), this, SLOT(colourChanged(QColor)));
 	connect(scale, SIGNAL(valueChanged(float)), this, SLOT(scaleChanged()));
-	connect(enabled, SIGNAL(toggled(bool)), this, SLOT(enabledChanged()));
 	updateValue();
 }
 
 void AnalogChannelCtrl::updateValue(void)
 {
-	enabled->setChecked(channel->configure.enabled = channel->enabled);
+	channel->updateMode();
+	mode->setCurrentIndex(channel->configure.mode);
 	scale->updateValue();
 	updateOffset();
 	scaleChanged();
@@ -59,11 +68,12 @@ void AnalogChannelCtrl::scaleChanged(void)
 	emit updateRequest();
 }
 
-void AnalogChannelCtrl::enabledChanged(void)
+void AnalogChannelCtrl::modeChanged(int mode)
 {
-	if (channel->configure.enabled == enabled->isChecked())
+	analog_t::channel_t::configure_t::Modes m = (analog_t::channel_t::configure_t::Modes)mode;
+	if (channel->configure.mode == m)
 		return;
-	channel->configure.enabled = enabled->isChecked();
+	channel->configure.mode = m;
 	if (!analog->calculate()) {
 		updateValue();
 		return;

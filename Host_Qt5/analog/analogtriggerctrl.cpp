@@ -77,15 +77,7 @@ void AnalogTriggerCtrl::levelReset(void)
 {
 	if (analog->trigger.enabled(true)) {
 		const analog_t::channel_t *ch = analog->triggerChannel(true);
-		int min = analog->maximum(), max = 0;
-		for (quint32 i = 0; i < analog->buffer.validSize; i++) {
-			int adc = ch->buffer.at(i);
-			if (adc < min)
-				min = adc;
-			if (adc > max)
-				max = adc;
-		}
-		analog->trigger.configure.dispLevel = analog->adcToScreenY(min + (max - min) / 2, ch);
+		analog->trigger.configure.dispLevel = ch->adcToScreenY(ch->bufferInfo.mean);
 	}
 	if (!analog->calculate())
 		reset();
@@ -100,8 +92,8 @@ void AnalogTriggerCtrl::reset(void)
 {
 	analog->trigger.reset();
 	if (analog->trigger.enabled()) {
-		analog->trigger.configure.dispLevel = analog->adcToScreenY(analog->trigger.level, analog->trigger.channel());
-		analog->trigger.configure.dispPosition = analog->countToScreenX(analog->trigger.position);
+		analog->trigger.configure.dispLevel = analog->findChannel(analog->trigger.channel())->adcToScreenY(analog->trigger.level);
+		analog->trigger.configure.dispPosition = analog->indexToScreenX(analog->trigger.position);
 	}
 }
 
@@ -111,7 +103,7 @@ void AnalogTriggerCtrl::updateDisplay(void)
 	source->setCurrentIndex(idx < 0 ? 0 : idx + 1);
 	edge->setCurrentIndex(analog->trigger.configure.edge == analog_t::trigger_t::Rising ? 0 : 1);
 	if (analog->trigger.enabled(true))
-		lLevel->setText(tr("Level: %1V").arg(scale_t::toString(analog->voltageFromScreenY(analog->trigger.configure.dispLevel, analog->trigger.channel(true)), true)));
+		lLevel->setText(tr("Level: %1V").arg(scale_t::toString(analog->findChannel(analog->trigger.channel(true))->screenYToVoltage(analog->trigger.configure.dispLevel), true)));
 	else
 		lLevel->setText(tr("N/A"));
 }

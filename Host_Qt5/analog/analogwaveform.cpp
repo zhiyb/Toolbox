@@ -147,6 +147,7 @@ void AnalogWaveform::initializeGL(void)
 	wave.locationYT.timebase = glGetUniformLocation(wave.programYT, "timebase");
 	wave.locationYT.reference = glGetUniformLocation(wave.programYT, "reference");
 	wave.locationYT.offset = glGetUniformLocation(wave.programYT, "offset");
+	wave.locationYT.vOffset = glGetUniformLocation(wave.programYT, "vOffset");
 	wave.locationYT.scale = glGetUniformLocation(wave.programYT, "scale");
 	//qDebug() << wave.programYT << wave.vshYT << fsh << wave.locationYT.colour << wave.locationYT.data << wave.locationYT.frequency << wave.locationYT.hCount << wave.locationYT.index << wave.locationYT.maxValue << wave.locationYT.modelView << wave.locationYT.projection << wave.locationYT.timebase;
 
@@ -234,6 +235,10 @@ void AnalogWaveform::paintGL(void)
 			glVertexAttribPointer(wave.locationYT.data, 1, GL_INT, GL_TRUE, 0, channel.buffer.constData());
 			glUniform1f(wave.locationYT.reference, channel.reference);
 			glUniform1f(wave.locationYT.offset, channel.totalOffset());
+			if (channel.configure.mode == analog_t::channel_t::configure_t::DC)
+				glUniform1f(wave.locationYT.vOffset, 0);
+			else
+				glUniform1f(wave.locationYT.vOffset, -channel.bufferInfo.mean);
 			glUniform1f(wave.locationYT.scale, channel.configure.scale.value());
 			glUniform4fv(wave.locationYT.colour, 1, (GLfloat *)&channel.configure.colour);
 			if (analog->scanMode()) {

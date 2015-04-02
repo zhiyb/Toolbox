@@ -50,11 +50,16 @@ private:
 	} grid;
 	struct wave_t {
 		struct location_t {
-			GLuint data, index;					// attribute int
-			GLuint hCount, vCount, maxValue;			// uniform int
-			GLuint timebase, frequency, reference, offset, scale;	// uniform float
-			GLuint projection, modelView;				// uniform mat4
-			GLuint colour;						// uniform vec4
+			// attribute int
+			GLuint data, index;
+			// uniform int
+			GLuint hCount, vCount, maxValue;
+			// uniform float
+			GLuint timebase, frequency, reference, offset, scale, vOffset;
+			// uniform mat4
+			GLuint projection, modelView;
+			// uniform vec4
+			GLuint colour;
 		} locationYT;
 
 		GLuint programYT, vshYT;

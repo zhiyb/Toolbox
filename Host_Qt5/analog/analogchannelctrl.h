@@ -26,7 +26,7 @@ private slots:
 	void offsetReset(void);
 	void offsetMoved(float frac);
 	void scaleChanged(void);
-	void enabledChanged(void);
+	void modeChanged(int mode);
 	void colourChanged(QColor clr);
 
 private:
@@ -34,7 +34,8 @@ private:
 
 	QLabel *lOffset;
 	Dial *offset;
-	QCheckBox *enabled;
+	QComboBox *mode;
+	//QCheckBox *enabled, *ac;
 	ColourSelection *colour;
 	ScaleValue *scale;
 	Device *dev;
