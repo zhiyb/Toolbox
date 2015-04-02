@@ -195,17 +195,14 @@ struct analog_t : public info_t, public resolution_t {
 	hwtimer_t timer;
 
 	struct buffer_t {
-		buffer_t(void) : sizePerChannel(0), position(0), validSize(0) {}
+		buffer_t(void) : size(0), sizePerChannel(0) {reset();}
 		void reset(void);
 		bool updateRequired(void) const {return sizePerChannel != configure.sizePerChannel;}
 
 		// Device information
 		quint32 size;
 
-		// Configure
 		quint32 sizePerChannel;
-
-		// Current
 		quint32 position, validSize;
 
 		struct configure_t {
@@ -216,7 +213,7 @@ struct analog_t : public info_t, public resolution_t {
 	} buffer;
 
 	struct grid_t {
-		grid_t(void) : gridPointSize(2), bgColour(Qt::black), gridColour(Qt::gray) {}
+		grid_t(void) : pointsPerGrid(0), gridPointSize(2), bgColour(Qt::black), gridColour(Qt::gray) {}
 
 		static const quint32 preferredPointsPerGrid;
 		static const quint32 minimumPointsPerGrid;
@@ -268,6 +265,8 @@ struct analog_t : public info_t, public resolution_t {
 			qint32 position;
 			int bufferIndex;
 			struct buffer_t {
+				buffer_t(void) : enabled(false) {}
+
 				bool enabled;
 				QVector<qint32> buffer;
 			};

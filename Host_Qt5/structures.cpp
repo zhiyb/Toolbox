@@ -275,13 +275,13 @@ void analog_t::update(void)
 	//qDebug() << "[DEBUG] Analog updated";
 }
 
-void analog_t::updateBufferInfo()
+void analog_t::updateBufferInfo(void)
 {
 	for (int idx = 0; idx < channel.count(); idx++) {
 		if (!channelEnabled(idx))
 			continue;
 		channel_t &ch = channel[idx];
-		qint32 min = INT32_MAX, max = INT32_MIN;
+		qint32 min = maximum(), max = 0;
 		quint64 sum = 0;
 		for (quint32 i = 0; i < buffer.validSize; i++) {
 			qint32 data = ch.buffer.at(i);
@@ -291,13 +291,13 @@ void analog_t::updateBufferInfo()
 			if (data > max)
 				max = data;
 		}
-		ch.bufferInfo.mean = (qreal)sum / buffer.validSize;
+		ch.bufferInfo.mean = buffer.validSize ? (qreal)sum / buffer.validSize : (maximum() / 2);
 		ch.bufferInfo.min = min;
 		ch.bufferInfo.max = max;
 	}
 }
 
-analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
+analog_t::channel_t::channel_t(void) : id(INVALID_ID), reference(0), offset(0), enabled(true), analog(0)
 {
 	QColor clr;
 	if (colourCount != sizeof(defaultColours) / sizeof(defaultColours[0]))
@@ -305,13 +305,14 @@ analog_t::channel_t::channel_t(void) : id(INVALID_ID), enabled(true)
 	else
 		clr = QColor(qrand() % 256, qrand() % 256, qrand() % 256);
 	configure.colour = clr;
+	resetBufferInfo();
 }
 
 void analog_t::channel_t::resetBufferInfo(void)
 {
-	bufferInfo.mean = analog->maximum();
+	bufferInfo.mean = analog ? analog->maximum() : 0;
 	bufferInfo.min = 0;
-	bufferInfo.max = analog->maximum();
+	bufferInfo.max = analog ? analog->maximum() : 0;
 }
 
 void analog_t::channel_t::update(const int bufferSize)
