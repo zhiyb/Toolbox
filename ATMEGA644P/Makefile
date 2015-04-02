@@ -34,4 +34,4 @@ LFUSE	= 0xE7
 
 LOG	= ~/.make_avr.log
 
-include Makefile.defs
+include ../Makefile_AVR.defs
