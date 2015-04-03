@@ -10,6 +10,7 @@
 #include <instructions.h>
 #include "connection.h"
 #include "conv.h"
+#include "debug.h"
 
 //#define DEFAULT_NETWORK_HOST	"192.168.0.36"
 #define DEFAULT_NETWORK_HOST	"192.168.6.48"
@@ -147,7 +148,7 @@ bool Connection::init(void)
 	type = s->type;
 	switch (type) {
 	case Network:
-		qDebug() << "[DEBUG] Connection::Network" << s->host << s->port;
+		pr_debug(tr("Connection::Network: %1, %2").arg(s->host).arg(s->port), LV_MSG);
 		con = new QTcpSocket(this);
 		host = QHostAddress(s->host);
 		if (!host.isNull())
@@ -160,7 +161,7 @@ bool Connection::init(void)
 		}
 		break;
 	case SerialPort:
-		qDebug() << "[DEBUG] Connection::SerialPort" << s->serialPort << s->serialSpeed;
+		pr_debug(tr("Connection::SerialPort: %1, %2").arg(s->serialPort).arg(s->serialSpeed), LV_MSG);
 		con = new QSerialPort(this);
 		serialPort()->setPortName(s->serialPort);
 		serialPort()->setBaudRate(s->serialSpeed);
@@ -220,6 +221,7 @@ void Connection::report(info_t *info)
 	case CMD_ANALOG: {
 		analog_t *analog = (analog_t *)info;
 		emit information(QString("ANALOG%1_INFO").arg(analog->id), tr("%1: %2 S/s, %3 S/f").arg(analog->name).arg(analog->timer.frequency()).arg(analog->buffer.sizePerChannel));
+		emit information(QString("ANALOG%1_HWINFO").arg(analog->id), tr("%1 hw: freq(%2), timer(%3)").arg(analog->name).arg(analog->timer.frequency() * analog->channelsCount()).arg(analog->timer.value));
 		break;
 	}
 	default:
@@ -230,7 +232,7 @@ void Connection::report(info_t *info)
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
-	//qDebug(tr("[DEBUG] Connection::writeChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
+	pr_debug(tr("Connection::writeChar: %1(%2)").arg((quint8)c).arg(c), LV_BYTE);
 	counter.tx++;
 }
 
@@ -248,7 +250,7 @@ void Connection::write(QByteArray &data)
 
 void Connection::writeValue(const quint32 value, const quint32 bytes)
 {
-	//qDebug(tr("[DEBUG] Connection::writeValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
+	pr_debug(tr("%1/%2").arg(value).arg(bytes), LV_BYTE);
 	con->write((char *)&value, bytes);
 	counter.tx += bytes;
 }
@@ -258,11 +260,11 @@ int Connection::readChar(int msec)
 	char c;
 	waitForRead(1, msec);
 	if (con->bytesAvailable() < 1) {
-		//qDebug(tr("[DEBUG] Connection::readChar: timed out (%1ms)").arg(msec).toLocal8Bit());
+		pr_debug(tr("timed out (%1ms)").arg(msec), LV_BYTE);
 		return -1;
 	}
 	con->read(&c, 1);
-	//qDebug(tr("[DEBUG] Connection::readChar: %1(%2)").arg((quint8)c).arg(c).toLocal8Bit());
+	pr_debug(tr("%1(%2)").arg((quint8)c).arg(c), LV_BYTE);
 	counter.rx++;
 	return (quint8)c;
 }
@@ -275,7 +277,7 @@ quint32 Connection::readValue(const quint32 bytes, int msec)
 		return -1;
 	con->read((char *)&value, bytes);
 	counter.rx += bytes;
-	//qDebug(tr("[DEBUG] Connection::readValue: %1/%2").arg(value).arg(bytes).toLocal8Bit());
+	pr_debug(tr("%1/%2").arg(value).arg(bytes), LV_BYTE);
 	return value;
 }
 
@@ -294,7 +296,7 @@ QString Connection::readString(int msec)
 
 void Connection::writeMessage(message_t &msg)
 {
-	//qDebug(tr("[DEBUG] Sending message, sequence: %1, command: %2, ID: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id).toLocal8Bit());
+	pr_debug(tr("Sequence: %1, command: %2, ID: %3").arg(msg.sequence).arg(msg.command).arg((quint32)msg.id), LV_PKG);
 send:
 	writeChar(msg.command);
 	waitForWrite();
@@ -302,7 +304,7 @@ send:
 	char c = 0;
 	while (t.msecsTo(QTime::currentTime()) < 1000 && (c = readData()) == 0);
 	if (c == -1 || c == 0) {
-		qDebug(tr("[WARNING] Connection::writeMessage: Quick resync").toLocal8Bit());
+		pr_debug(tr("Quick resync"), LV_MSG);
 		quickResync();
 		goto send;
 	} else if (c != CMD_ACK) {
@@ -313,7 +315,7 @@ send:
 		writeChar(msg.id);
 	while (msg.settings.count()) {
 		struct message_t::set_t set = msg.settings.dequeue();
-		//qDebug(tr("[DEBUG]   Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value).toLocal8Bit());
+		pr_debug(tr("  Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value), LV_PKG);
 		writeChar(set.id);
 		if (set.id == INVALID_ID)
 			break;
@@ -321,7 +323,7 @@ send:
 	}
 	this->counter.txPackage++;
 	if (msg.update.id != INVALID_ID) {
-		//qDebug(tr("[DEBUG] Message sent, update %1").arg(msg.update.id).toLocal8Bit());
+		pr_debug(tr("Message sent, update %1").arg(msg.update.id), LV_PKG);
 		info_t *info = (analog_t *)findInfo(CMD_ANALOG, msg.update.id);
 		if (!info)
 			emit error(tr("No matching info data ID: %1").arg(msg.update.id));
@@ -334,13 +336,12 @@ send:
 		}
 		report(info);
 	}
-	//qDebug(tr("[DEBUG] Message sent").toLocal8Bit());
 	emit messageSent(msg.sequence);
 }
 
 bool Connection::reset(void)
 {
-	//qDebug() << "[DEBUG] Connection::reset";
+	pr_debug("Reset", LV_INFO);
 	//resync();
 	writeRepeatedChar(CMD_RESET, 16);
 	counter.tx += 16;
@@ -373,7 +374,7 @@ QVector<info_t *> Connection::findInfos(const quint8 type)
 	QVector<info_t *> infos;
 	for (int i = 0; i != this->infos.count(); i++) {
 		info_t *info = this->infos[i];
-		//qDebug(tr("Matching: %1, %2").arg(type).arg(info->type()).toLocal8Bit());
+		//pr_debug(tr("Matching: %1, %2").arg(type).arg(info->type()), LV_PKG);
 		if (info->type() == type)
 			infos.append(info);
 	}
@@ -384,7 +385,7 @@ info_t *Connection::findInfo(const quint8 type, const quint8 id)
 {
 	for (int i = 0; i != infos.count(); i++) {
 		info_t *info = infos[i];
-		//qDebug(tr("Matching: %1(%2), %3(%4)").arg(type).arg((quint32)id).arg(info->type()).arg((quint32)info->id).toLocal8Bit());
+		//pr_debug(tr("Matching: %1(%2), %3(%4)").arg(type).arg((quint32)id).arg(info->type()).arg((quint32)info->id), LV_PKG);
 		if (info->type() == type && info->id == id)
 			return info;
 	}
@@ -481,7 +482,7 @@ analog_t *Connection::readAnalog(void)
 	analog->buffer.size = readValue(4);
 	analog->timer = readTimer();
 	pushInfo(analog);
-	//qDebug() << "[DEBUG] readAnalog:" << analog;
+	pr_debug(tr("0x%1").arg((uint32_t)analog, 0, 16), LV_INFO);
 	return analog;
 }
 
@@ -501,7 +502,6 @@ analog_t::data_t Connection::readAnalogData(void)
 	}
 	data.type = readChar();
 	quint32 count = analog->channelsCount();
-	//qDebug(tr("[DEBUG] Connection::readAnalogData: %1").arg(count).toLocal8Bit());
 	data.data.resize(count);
 	switch (data.type) {
 	case CTRL_FRAME:
@@ -514,14 +514,14 @@ analog_t::data_t Connection::readAnalogData(void)
 			data.data[i] = readValue(analog->bytes());
 		break;
 	}
-	//qDebug(tr("[DEBUG] Connection::readAnalogData: %1, done").arg(data.data.size()).toLocal8Bit());
+	pr_debug(tr("%1").arg(data.data.size()), LV_BYTE);
 	return data;
 }
 
 char Connection::readData(int msec)
 {
 	int c = readChar(msec);
-	//qDebug(tr("[DEBUG] readData: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+	pr_debug(tr("%1(%2)").arg(c).arg((char)c), LV_BYTE);
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;
@@ -537,19 +537,15 @@ char Connection::readData(int msec)
 	case CMD_ANALOGDATA:
 		emit analogData(readAnalogData());
 		break;
-#if 1
 	case 'V':
-		qDebug(tr("[DEBUG] %1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)).toLocal8Bit());
+		pr_debug(tr("%1: Received debug V, %2").arg(QTime::currentTime().toString()).arg((quint8)readChar(msec)), LV_MSG);
 		return -1;
-#endif
 	case -1:
-#if 0
 		if (msec > 100)
-			qDebug(tr("[DEBUG] Connection::readData: -1").toLocal8Bit());
-#endif
+			pr_debug(tr("Timed out"), LV_PKG);
 		return -1;
 	default:
-		qDebug(tr("[WARNING] Connection::readData: Unknown head: %1(%2)").arg(c).arg((char)c).toLocal8Bit());
+		pr_warning(tr("Unknown head: %1(%2)").arg(c).arg((char)c));
 		return c;
 	}
 	counter.rxPackage++;
@@ -560,6 +556,7 @@ void Connection::start(void)
 {
 	timer.report = startTimer(REPORT_INTERVAL * 1000);
 	timer.update = startTimer(0);
+	report();
 }
 
 void Connection::enqueue(const message_t &msg)

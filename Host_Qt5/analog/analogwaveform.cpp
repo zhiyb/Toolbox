@@ -1,4 +1,5 @@
 #include "analogwaveform.h"
+#include "debug.h"
 
 #define SHADER_FILE_PATH	"shader/"
 //#define USE_STENCIL
@@ -94,7 +95,7 @@ void AnalogWaveform::generateGrid(void)
 void AnalogWaveform::initializeGL(void)
 {
 	initializeOpenGLFunctions();
-	qDebug() << "[DEBUG]" << format();
+	qDebug() << "[INFO]" << format();
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	//glEnable(GL_POINT_SPRITE);
 	glEnable(GL_MULTISAMPLE);

@@ -48,7 +48,8 @@ HEADERS  += mainwindow.h \
     common/conv.h \
     common/dial.h \
     common/information.h \
-    analog/analogtimebasectrl.h
+    analog/analogtimebasectrl.h \
+    common/debug.h
 
 TRANSLATIONS = toolbox_en.ts
 
