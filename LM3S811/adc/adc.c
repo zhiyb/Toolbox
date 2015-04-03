@@ -30,6 +30,7 @@ volatile uint16_t adcTxBufferRequest;
 static uint16_t adcBufferCount;	// Buffered conversions count
 static uint8_t channelEnabled = 0xFF;
 static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
+volatile uint8_t adcIgnore = 0;
 
 static inline void stopADC(void);
 static void configureADC(void);
@@ -170,11 +171,13 @@ static void startADC(void)
 		adcBufferCurrent = adcBufferStart = (adcData_t *)(adcTxBuffer + ADC_PREPEND_BYTES);
 		adcBufferEnd = adcBufferStart + adcBufferCount;
 	}
-	pauseADC();
+	//pauseADC();
+	stopADC();
 
 	// Device specific
 	//adcData_t adc[CTRL_ADC_CHANNELS];
 	//ADCSeqDataGet(ADC, 0, adc);
+	adcIgnore = 2;
 	ADCSequenceEnable(ADC, 0);
 
 	resumeADC();
@@ -247,8 +250,13 @@ void ctrlADCControllerGenerate(void)
 	for (i = 0; i < CTRL_ADC_CHANNELS; i++) {
 		sendChar(i);			// Channel ID
 		sendString(channelName[i]);
-		sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
-		sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
+		if (i == CTRL_ADC_CHANNELS - 1) {	// Temperature sensor
+			sendValue(floatToRawUInt32(-225.f), 4);
+			sendValue(floatToRawUInt32(147.5), 4);
+		} else {
+			sendValue(floatToRawUInt32(CTRL_ADC_REF), 4);
+			sendValue(floatToRawUInt32(CTRL_ADC_OFFSET), 4);
+		}
 	}
 	sendValue(channelEnabled, CTRL_ADC_CHANNELS_BYTES);
 	sendValue(ADC_BUFFER_SIZE / CTRL_ADC_BYTES, 4);	// ADC conversion buffer size
@@ -257,6 +265,16 @@ void ctrlADCControllerGenerate(void)
 
 void ADCIntHandler(void)
 {
+#if 0
+	if (adcIgnore) {
+		// Unexpected data exist
+		adcData_t adc[CTRL_ADC_CHANNELS];
+		ADCSeqDataGet(ADC, 0, adc);
+		adcIgnore--;
+		return;
+	}
+#endif
+
 	unsigned long cnt;
 	cnt = ADCSeqDataGetNum(ADC, 0, channelCount, adcBufferCurrent);
 	//cnt = ADCSeqDataGet(ADC0_BASE, 0, adcBufferCurrent);
@@ -264,11 +282,6 @@ void ADCIntHandler(void)
 
 	// Incorrect data length
 	if (cnt != channelCount)
-		return;
-
-	// Unexpected data exist
-	adcData_t adc[CTRL_ADC_CHANNELS];
-	if (ADCSeqDataGet(ADC, 0, adc))
 		return;
 
 	adcBufferCurrent = adcBufferCurrent + cnt == adcBufferEnd ? adcBufferStart : adcBufferCurrent + cnt;

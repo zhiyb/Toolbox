@@ -68,7 +68,7 @@ include ${ROOT}/makedefs
 #
 IPATH	= ${ROOT}/boards/ek-lm3s811
 IPATH	+= ${ROOT}
-IPATH	+= . ../../inc
+IPATH	+= . ../inc
 IPATH	+= adc
 
 #

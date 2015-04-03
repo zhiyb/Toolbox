@@ -10,6 +10,8 @@
 #include "uart.h"
 #include "info.h"
 
+static uint32_t timerV;
+
 void initTimer0(void)
 {
 	// Timer init
@@ -34,6 +36,7 @@ void stopTimer0(void)
 
 static inline void setTimer0(const uint32_t v)
 {
+	timerV = v;
 	TimerLoadSet(TIMER0_BASE, TIMER_A, v);
 }
 
