@@ -16,14 +16,14 @@ Device::Device(QObject *parent) :
 
 Device::~Device(void)
 {
-	con->quit();
 	conThread.quit();
 	conThread.wait();
 }
 
 bool Device::init(void)
 {
-	connect(&conThread, SIGNAL(started()), con, SLOT(loop()));
+	connect(&conThread, SIGNAL(started()), con, SLOT(start()));
+	connect(&conThread, SIGNAL(finished()), con, SLOT(reset()));
 	connect(con, SIGNAL(error(QString)), this, SLOT(error(QString)));
 	connect(con, SIGNAL(info(info_t *)), this, SLOT(info(info_t *)));
 	connect(con, SIGNAL(device(device_t)), this, SLOT(device(device_t)));

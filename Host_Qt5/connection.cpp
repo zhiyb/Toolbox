@@ -128,7 +128,7 @@ void ConnectionSelection::accept(void)
 
 // ********************************************************************************
 
-Connection::Connection(QObject *parent) : QObject(parent), exit(false) {}
+Connection::Connection(QObject *parent) : QObject(parent) {}
 
 Connection::~Connection(void)
 {
@@ -200,7 +200,7 @@ bool Connection::waitForReadAll(int count, int msec)
 	return count != 0;
 }
 
-void Connection::reportData(void)
+void Connection::report(void)
 {
 	QTime now = QTime::currentTime();
 	int sec = counter.prev.secsTo(now);
@@ -212,12 +212,18 @@ void Connection::reportData(void)
 		emit information("RATE_RX", tr("Rx: %1 bytes/s (%2 packages/s)").arg((float)counter.rx / msec * 1000).arg((float)counter.rxPackage / msec * 1000));
 		counter.reset(now);
 	}
+}
 
-	// Analog capture infomation
-	QVector<info_t *> infos = findInfos(CMD_ANALOG);
-	while (!infos.isEmpty()) {
-		analog_t *analog = (analog_t *)infos.takeFirst();
+void Connection::report(info_t *info)
+{
+	switch (info->type()) {
+	case CMD_ANALOG: {
+		analog_t *analog = (analog_t *)info;
 		emit information(QString("ANALOG%1_INFO").arg(analog->id), tr("%1: %2 S/s, %3 S/f").arg(analog->name).arg(analog->timer.frequency()).arg(analog->buffer.sizePerChannel));
+		break;
+	}
+	default:
+		emit error(tr("reportData not supported for type: %1").arg(info->type()));
 	}
 }
 
@@ -322,11 +328,11 @@ send:
 		switch (info->type()) {
 		case CMD_ANALOG:
 			((analog_t *)info)->update();
-			reportData();
 			break;
 		default:
-			emit error(tr("Update not supported for type: %1").arg(info->type()));
+			emit error(tr("update not supported for type: %1").arg(info->type()));
 		}
+		report(info);
 	}
 	//qDebug(tr("[DEBUG] Message sent").toLocal8Bit());
 	emit messageSent(msg.sequence);
@@ -334,12 +340,14 @@ send:
 
 bool Connection::reset(void)
 {
-	//qDebug() << "Connection::reset";
+	//qDebug() << "[DEBUG] Connection::reset";
 	//resync();
 	writeRepeatedChar(CMD_RESET, 16);
+	counter.tx += 16;
 	waitForWrite();
 	waitForReadAll(3);
 	QByteArray data = con->readAll();
+	counter.rx += data.size();
 	if (!data.endsWith(CMD_ACK)) {
 		emit error(tr("Reset error, no acknowledge received: ") + data);
 		return false;
@@ -389,7 +397,7 @@ device_t Connection::readDeviceInfo(void)
 	device.version = readValue(4);
 	device.name = readString();
 	if (device.version != FW_VERSION)
-		exit = true;
+		emit error(tr("Firmware version mismatch: %1/%2").arg(device.version).arg(FW_VERSION));
 	return device;
 }
 
@@ -548,34 +556,10 @@ char Connection::readData(int msec)
 	return 0;
 }
 
-void Connection::loop(void)
+void Connection::start(void)
 {
-	static bool report = true;
-	bool send = false;
-	message_t msg;
-	while (!exit) {
-		//qDebug() << "loop.";
-		if (QTime::currentTime().second() % REPORT_INTERVAL) {
-			if (report) {
-				reportData();
-				report = false;
-			}
-		} else
-			report = true;
-		if (queueLock.tryLock()) {
-			if (!queue.isEmpty()) {
-				msg = queue.dequeue();
-				send = true;
-			}
-			queueLock.unlock();
-			if (send)
-				writeMessage(msg);
-			send = false;
-		}
-		readData(10);
-	}
-	//qDebug() << "loop exit.";
-	reset();
+	timer.report = startTimer(REPORT_INTERVAL * 1000);
+	timer.update = startTimer(0);
 }
 
 void Connection::enqueue(const message_t &msg)
@@ -585,6 +569,26 @@ void Connection::enqueue(const message_t &msg)
 		queue.removeLast();
 	queue.enqueue(msg);
 	queueLock.unlock();
+}
+
+void Connection::timerEvent(QTimerEvent *e)
+{
+	if (e->timerId() == timer.report) {
+		report();
+		return;
+	}
+	if (!queue.isEmpty() && queueLock.tryLock()) {
+		bool send = false;
+		message_t msg;
+		if (!queue.isEmpty()) {
+			msg = queue.dequeue();
+			send = true;
+		}
+		queueLock.unlock();
+		if (send)
+			writeMessage(msg);
+	}
+	readData(10);
 }
 
 void Connection::counter_t::reset(const QTime &now)
