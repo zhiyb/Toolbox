@@ -30,7 +30,6 @@ volatile uint16_t adcTxBufferRequest;
 static uint16_t adcBufferCount;	// Buffered conversions count
 static uint8_t channelEnabled = 0xFF;
 static uint8_t channelCount = CTRL_ADC_CHANNELS, scanMode = 1;
-volatile uint8_t adcIgnore = 0;
 
 static inline void stopADC(void);
 static void configureADC(void);
@@ -125,7 +124,7 @@ void initADC(void)
 	configureADC();
 	// ulBase, ulSequenceNum, ulStep, ulConfig
 	ADCHardwareOversampleConfigure(ADC, 0);
-	//ADCSequenceEnable(ADC0_BASE, 0);
+	ADCSequenceEnable(ADC, 0);
 	ADCIntEnable(ADC, 0);
 	IntEnable(INT_ADC0SS0);
 
@@ -171,14 +170,9 @@ static void startADC(void)
 		adcBufferCurrent = adcBufferStart = (adcData_t *)(adcTxBuffer + ADC_PREPEND_BYTES);
 		adcBufferEnd = adcBufferStart + adcBufferCount;
 	}
-	//pauseADC();
-	stopADC();
 
 	// Device specific
-	//adcData_t adc[CTRL_ADC_CHANNELS];
-	//ADCSeqDataGet(ADC, 0, adc);
-	adcIgnore = 2;
-	ADCSequenceEnable(ADC, 0);
+	//ADCSequenceEnable(ADC, 0);
 
 	resumeADC();
 }
@@ -186,9 +180,12 @@ static void startADC(void)
 static inline void stopADC(void)
 {
 	pauseADC();
-	adcData_t adc[CTRL_ADC_CHANNELS];
-	ADCSequenceDisable(ADC, 0);
-	ADCSeqDataGet(ADC, 0, adc);
+	// FIXME: Proper delay required here
+	volatile unsigned long i = SYS_CLK / 1000;
+	while (i--);
+	adcData_t adc[16];
+	while (ADCSeqDataGet(ADC, 0, adc));
+	//ADCSequenceDisable(ADC, 0);
 	ADCIntClear(ADC, 0);
 	adcTxBufferRequest = 0;
 }
@@ -197,6 +194,7 @@ static void configureADC(void)
 {
 	uint8_t mask = 0x01, i, last = 0;
 	channelCount = 0;
+	ADCSequenceDisable(ADC, 0);
 	for (i = 0; i != CTRL_ADC_CHANNELS; i++) {
 		if (channelEnabled & mask)
 			ADCSequenceStepConfigure(ADC, 0, channelCount++, channels[(last = i)]);
@@ -205,6 +203,7 @@ static void configureADC(void)
 	if (!channelCount)
 		return;
 	ADCSequenceStepConfigure(ADC, 0, channelCount - 1, channels[last] | ADC_CTL_IE | ADC_CTL_END);
+	ADCSequenceEnable(ADC, 0);
 }
 
 void ctrlADCController(const uint8_t id)
@@ -265,16 +264,6 @@ void ctrlADCControllerGenerate(void)
 
 void ADCIntHandler(void)
 {
-#if 0
-	if (adcIgnore) {
-		// Unexpected data exist
-		adcData_t adc[CTRL_ADC_CHANNELS];
-		ADCSeqDataGet(ADC, 0, adc);
-		adcIgnore--;
-		return;
-	}
-#endif
-
 	unsigned long cnt;
 	cnt = ADCSeqDataGetNum(ADC, 0, channelCount, adcBufferCurrent);
 	//cnt = ADCSeqDataGet(ADC0_BASE, 0, adcBufferCurrent);

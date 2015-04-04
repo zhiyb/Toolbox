@@ -16,8 +16,7 @@ void initTimer0(void)
 {
 	// Timer init
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
-	TimerIntDisable(TIMER0_BASE, TIMER_TIMA_TIMEOUT);
-	TimerConfigure(TIMER0_BASE, TIMER_CFG_A_PERIODIC);
+	TimerConfigure(TIMER0_BASE, TIMER_CFG_PERIODIC);
 	TimerControlTrigger(TIMER0_BASE, TIMER_A, true);
 	TimerControlStall(TIMER0_BASE, TIMER_A, true);
 	TimerLoadSet(TIMER0_BASE, TIMER_A, SYS_CLK);
