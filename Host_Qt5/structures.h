@@ -155,7 +155,7 @@ struct analog_t : public info_t, public resolution_t {
 		void update(const int bufferSize);
 		void updateMode(void) {updateMode(enabled);}
 		void updateMode(const bool e);
-		qreal totalOffset(void) const {return offset + configure.displayOffset;}
+		qreal totalOffset(void) const {return (configure.mode == configure_t::AC ? 0 : offset) + configure.displayOffset;}
 		qreal adcToVoltage(const qint32 adc) const;
 		qint32 voltageToADC(const qreal voltage) const;
 		qreal voltageToScreenY(const qreal voltage) const;
