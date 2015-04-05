@@ -181,7 +181,7 @@ struct analog_t : public info_t, public resolution_t {
 
 		// Configure
 		struct configure_t {
-			configure_t(void) : mode(DC), displayOffset(0) {}
+			configure_t(void) : mode(Off), displayOffset(0) {}
 			bool enabled(void) const {return mode != Off;}
 
 			enum Modes {Off = 0, DC, AC} mode;

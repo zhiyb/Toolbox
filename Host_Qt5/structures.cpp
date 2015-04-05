@@ -180,7 +180,7 @@ bool analog_t::updateRequired() const
 		upd |= triggerValid(true) != triggerValid(false);
 		upd |= triggerValid() && trigger.settingsUpdateRequired();
 	}
-	//qDebug(QObject::tr("[DEBUG] analog_t::updateRequired: %1").arg(upd).toLocal8Bit());
+	pr_debug(QObject::tr("%1").arg(upd), LV_PKG);
 	return upd;
 }
 
@@ -329,7 +329,7 @@ void analog_t::channel_t::update(const int bufferSize)
 void analog_t::channel_t::updateMode(const bool e)
 {
 	enabled = e;
-	if (configure.enabled() && e)
+	if (configure.enabled() && !e)
 		configure.mode = channel_t::configure_t::Off;
 	else if (!configure.enabled() && e)
 		configure.mode = channel_t::configure_t::DC;

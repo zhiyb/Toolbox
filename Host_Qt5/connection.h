@@ -80,7 +80,7 @@ private:
 	void writeValue(const quint32 value, const quint32 bytes);
 	void writeRepeatedChar(const char c, const qint64 size);
 	void writeMessage(message_t &msg);
-	int readChar(int msec = COMMUNICATION_WAIT);
+	int readChar(int msec = COMMUNICATION_WAIT, bool debug = true);
 	quint32 readValue(const quint32 bytes, int msec = COMMUNICATION_WAIT);
 	char readData(int msec = COMMUNICATION_WAIT);
 	QString readString(int msec = COMMUNICATION_WAIT);

@@ -17,7 +17,7 @@
 #define DEFAULT_NETWORK_PORT	1111
 #define DEFAULT_SERIAL_PORT	"COM1"
 #define DEFAULT_SERIAL_BAUD	UART_BAUD
-#define REPORT_INTERVAL		3	// Need to be divisible by 60
+#define REPORT_INTERVAL		3
 
 ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
 {
@@ -232,7 +232,7 @@ void Connection::report(info_t *info)
 void Connection::writeChar(const char c)
 {
 	con->write(&c, 1);
-	pr_debug(tr("Connection::writeChar: %1(%2)").arg((quint8)c).arg(c), LV_BYTE);
+	pr_debug(tr("%1(%2)").arg((quint8)c).arg(c), LV_BYTE);
 	counter.tx++;
 }
 
@@ -255,16 +255,17 @@ void Connection::writeValue(const quint32 value, const quint32 bytes)
 	counter.tx += bytes;
 }
 
-int Connection::readChar(int msec)
+int Connection::readChar(int msec, bool debug)
 {
 	char c;
 	waitForRead(1, msec);
 	if (con->bytesAvailable() < 1) {
-		pr_debug(tr("timed out (%1ms)").arg(msec), LV_BYTE);
+		//pr_debug(tr("timed out (%1ms)").arg(msec), LV_BYTE);
 		return -1;
 	}
 	con->read(&c, 1);
-	pr_debug(tr("%1(%2)").arg((quint8)c).arg(c), LV_BYTE);
+	if (debug)
+		pr_debug(tr("%1(%2)").arg((quint8)c).arg(c), LV_BYTE);
 	counter.rx++;
 	return (quint8)c;
 }
@@ -286,11 +287,12 @@ QString Connection::readString(int msec)
 	int c;
 	QString str;
 	forever {
-		c = readChar(msec);
+		c = readChar(msec, false);
 		if (c == '\0' || c == -1)
 			break;
 		str.append(c);
 	}
+	pr_debug(str, LV_BYTE);
 	return str;
 }
 
@@ -315,7 +317,7 @@ send:
 		writeChar(msg.id);
 	while (msg.settings.count()) {
 		struct message_t::set_t set = msg.settings.dequeue();
-		pr_debug(tr("  Settings ID: %1, bytes: %2, value: %3").arg((quint32)set.id).arg(set.bytes).arg(set.value), LV_PKG);
+		pr_debug(tr("  Settings ID: %1, bytes: %2, value: 0x%3").arg((quint32)set.id).arg(set.bytes).arg(set.value, 2, 16, QChar('0')), LV_PKG);
 		writeChar(set.id);
 		if (set.id == INVALID_ID)
 			break;
@@ -521,7 +523,7 @@ analog_t::data_t Connection::readAnalogData(void)
 char Connection::readData(int msec)
 {
 	int c = readChar(msec);
-	pr_debug(tr("%1(%2)").arg(c).arg((char)c), LV_BYTE);
+	//pr_debug(tr("%1(%2)").arg(c).arg((char)c), LV_BYTE);
 	switch (c) {
 	case CMD_ACK:
 		return CMD_ACK;

@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QString>
 
-#define DEBUG_LEVEL	LV_INFO
+#define DEBUG_LEVEL	LV_PKG
 
 #define pr_debug(str, level)	if (level <= DEBUG_LEVEL) qDebug() << QString("[DEBUG/%1] (%2:%3, %4) %5").arg(level).arg(__FILE__).arg(__LINE__).arg(__func__).arg(str).toLocal8Bit().constData()
 #define pr_info(str)		qDebug() << QString("[INFO] %1").arg(str).toLocal8Bit().constData()
