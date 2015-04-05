@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * @file    stm32f4xx_it.c
-  * @date    06/02/2015 00:44:03
+  * @date    05/04/2015 00:15:49
   * @brief   Interrupt Service Routines.
   ******************************************************************************
   *
@@ -50,31 +50,33 @@ extern DMA_HandleTypeDef hdma_uart8_rx;
 /******************************************************************************/
 
 /**
-* @brief This function handles DMA1 Stream0 global interrupt.
+* @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
 */
-void DMA1_Stream0_IRQHandler(void)
+void ADC_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
+  /* USER CODE BEGIN ADC_IRQn 0 */
+	if (__HAL_ADC_GET_IT_SOURCE(&hadc1, ADC_IT_EOC))
+		HAL_ADC_ConvCpltCallback(&hadc1);
+	return;
+  /* USER CODE END ADC_IRQn 0 */
+  HAL_ADC_IRQHandler(&hadc1);
+  /* USER CODE BEGIN ADC_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_uart8_tx);
-  /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
-
-  /* USER CODE END DMA1_Stream0_IRQn 1 */
+  /* USER CODE END ADC_IRQn 1 */
 }
 
 /**
-* @brief This function handles DMA1 Stream6 global interrupt.
+* @brief This function handles DMA2 Stream0 global interrupt.
 */
-void DMA1_Stream6_IRQHandler(void)
+void DMA2_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
 
-  /* USER CODE END DMA1_Stream6_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_uart8_rx);
-  /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
+  /* USER CODE END DMA2_Stream0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_adc1);
+  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
 
-  /* USER CODE END DMA1_Stream6_IRQn 1 */
+  /* USER CODE END DMA2_Stream0_IRQn 1 */
 }
 
 /**
@@ -93,33 +95,31 @@ void SysTick_Handler(void)
 }
 
 /**
-* @brief This function handles DMA2 Stream0 global interrupt.
+* @brief This function handles DMA1 Stream6 global interrupt.
 */
-void DMA2_Stream0_IRQHandler(void)
+void DMA1_Stream6_IRQHandler(void)
 {
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+  /* USER CODE BEGIN DMA1_Stream6_IRQn 0 */
 
-  /* USER CODE END DMA2_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
+  /* USER CODE END DMA1_Stream6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_uart8_rx);
+  /* USER CODE BEGIN DMA1_Stream6_IRQn 1 */
 
-  /* USER CODE END DMA2_Stream0_IRQn 1 */
+  /* USER CODE END DMA1_Stream6_IRQn 1 */
 }
 
 /**
-* @brief This function handles ADC1, ADC2 and ADC3 global interrupts.
+* @brief This function handles DMA1 Stream0 global interrupt.
 */
-void ADC_IRQHandler(void)
+void DMA1_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN ADC_IRQn 0 */
-	if (__HAL_ADC_GET_IT_SOURCE(&hadc1, ADC_IT_EOC))
-		HAL_ADC_ConvCpltCallback(&hadc1);
-	return;
-  /* USER CODE END ADC_IRQn 0 */
-  HAL_ADC_IRQHandler(&hadc1);
-  /* USER CODE BEGIN ADC_IRQn 1 */
+  /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 
-  /* USER CODE END ADC_IRQn 1 */
+  /* USER CODE END DMA1_Stream0_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_uart8_tx);
+  /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
+
+  /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

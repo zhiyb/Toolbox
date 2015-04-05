@@ -1,7 +1,7 @@
 /**
   ******************************************************************************
   * File Name          : stm32f4xx_hal_msp.c
-  * Date               : 06/02/2015 00:44:03
+  * Date               : 05/04/2015 00:15:50
   * Description        : This file provides code for the MSP Initialization 
   *                      and de-Initialization codes.
   ******************************************************************************
@@ -338,11 +338,8 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     hdma_uart8_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
     hdma_uart8_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
     hdma_uart8_tx.Init.Mode = DMA_NORMAL;
-    hdma_uart8_tx.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    hdma_uart8_tx.Init.FIFOMode = DMA_FIFOMODE_ENABLE;
-    hdma_uart8_tx.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_1QUARTERFULL;
-    hdma_uart8_tx.Init.MemBurst = DMA_MBURST_SINGLE;
-    hdma_uart8_tx.Init.PeriphBurst = DMA_PBURST_SINGLE;
+    hdma_uart8_tx.Init.Priority = DMA_PRIORITY_MEDIUM;
+    hdma_uart8_tx.Init.FIFOMode = DMA_FIFOMODE_DISABLE;
     HAL_DMA_Init(&hdma_uart8_tx);
 
     __HAL_LINKDMA(huart,hdmatx,hdma_uart8_tx);

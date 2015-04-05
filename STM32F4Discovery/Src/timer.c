@@ -1,6 +1,9 @@
+#include <inttypes.h>
+#include <instructions.h>
 #include "timer.h"
 #include "handles.h"
-#include "communication.h"
+#include "uart.h"
+#include "info.h"
 
 void initTimer(TIM_HandleTypeDef* handle)
 {
@@ -17,26 +20,31 @@ void stopTimer(TIM_HandleTypeDef *handle)
 	HAL_TIM_Base_Stop(handle);
 }
 
-void ctrlTimerController()
+static inline void setTimer(TIM_HandleTypeDef *handle, const uint32_t v)
 {
-	TIM_HandleTypeDef* handle = TIMER_HANDLE(receiveChar(-1));
+	handle->Init.Period = v;
+	HAL_TIM_Base_Init(handle);
+}
+
+void ctrlTimerController(void)
+{
+	TIM_HandleTypeDef* handle = TIMER_HANDLE(receiveChar());
 	if (!handle)
 		return;
 	uint32_t value;
 loop:
-	switch (receiveChar(-1)) {
+	switch (receiveChar()) {
 	case CTRL_START:
-		if (receiveChar(-1))
+		if (receiveChar())
 			startTimer(handle);
 		else
 			stopTimer(handle);
 		break;
 	case CTRL_SET:
-		receiveData((uint8_t *)&value, TIMER_BYTES(handle), -1);
-		//HAL_TIM_Base_DeInit(handle);
-		handle->Init.Period = value;
-		HAL_TIM_Base_Init(handle);
+		receiveData((uint8_t *)&value, TIMER_BYTES(handle));
+		setTimer(handle, value);
 		break;
+	case INVALID_ID:
 	default:
 		return;
 	}
@@ -51,4 +59,5 @@ void ctrlTimerControllerGenerate(TIM_HandleTypeDef* handle)
 		return;
 	sendChar(TIMER_RESOLUTION(handle));		// Resolution (bits)
 	sendValue(TIMER_FREQUENCY(handle), 4);		// Frequency
+	poolSending();
 }
