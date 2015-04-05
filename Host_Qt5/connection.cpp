@@ -1,133 +1,15 @@
 #include <QThread>
-#include <QMessageBox>
 #include <QDebug>
 #include <QString>
-#include <QHostAddress>
-#include <QSerialPortInfo>
 #include <QList>
-#include <QInputDialog>
-#include <QProgressDialog>
+#include <QHostAddress>
 #include <instructions.h>
+#include "connectionselection.h"
 #include "connection.h"
 #include "conv.h"
 #include "debug.h"
 
-//#define DEFAULT_NETWORK_HOST	"192.168.0.36"
-#define DEFAULT_NETWORK_HOST	"192.168.6.48"
-#define DEFAULT_NETWORK_PORT	1111
-#define DEFAULT_SERIAL_PORT	"COM1"
-#define DEFAULT_SERIAL_BAUD	UART_BAUD
 #define REPORT_INTERVAL		3
-
-ConnectionSelection::ConnectionSelection(QWidget *parent) : QDialog(parent)
-{
-	type = Connection::Network;
-	host = DEFAULT_NETWORK_HOST;
-	port = DEFAULT_NETWORK_PORT;
-	serialPort = DEFAULT_SERIAL_PORT;
-	serialSpeed = DEFAULT_SERIAL_BAUD;
-
-	QVBoxLayout *vLayout = new QVBoxLayout(this);
-	QHBoxLayout *hTypeLayout = new QHBoxLayout, *hSettingsLayout = new QHBoxLayout, *hButtonLayout = new QHBoxLayout;
-	vLayout->addLayout(hTypeLayout);
-	hTypeLayout->addWidget(rbTypes[Connection::Network] = new QRadioButton(tr("&Network")));
-	rbTypes[Connection::Network]->setChecked(true);
-	hTypeLayout->addWidget(rbTypes[Connection::SerialPort] = new QRadioButton(tr("&Serial Port")));
-	vLayout->addLayout(hSettingsLayout);
-	hSettingsLayout->addWidget(lHost = new QLabel);
-	hSettingsLayout->addWidget(leHost = new QLineEdit, 2);
-	hSettingsLayout->addWidget(pbScan = new QPushButton(tr("Sc&an")));
-	pbScan->setVisible(false);
-	hSettingsLayout->addWidget(lPort = new QLabel);
-	hSettingsLayout->addWidget(lePort = new QLineEdit, 1);
-	vLayout->addLayout(hButtonLayout);
-	hButtonLayout->addWidget(pbOpen = new QPushButton(tr("&Open")));
-	pbOpen->setDefault(true);
-	hButtonLayout->addWidget(pbCancel = new QPushButton(tr("&Cancel")));
-	setWindowTitle("Connection settings");
-	setWindowFlags(Qt::Dialog | Qt::MSWindowsFixedSizeDialogHint);
-
-	for (unsigned int i = 0; i < (sizeof(rbTypes) / sizeof(rbTypes[0])); i++)
-		connect(rbTypes[i], SIGNAL(clicked()), this, SLOT(typeUpdate()));
-	connect(pbScan, SIGNAL(clicked()), this, SLOT(scan()));
-	connect(pbOpen, SIGNAL(clicked()), this, SLOT(accept()));
-	connect(pbCancel, SIGNAL(clicked()), this, SLOT(reject()));
-
-	typeUpdate();
-}
-
-void ConnectionSelection::scan(void)
-{
-	QList<QSerialPortInfo> ports = QSerialPortInfo::availablePorts();
-	QStringList names;
-	for (int i = 0; i < ports.count(); i++)
-		names.append(ports.at(i).description() + " (" + ports.at(i).portName() + ")");
-	if (names.count() == 0) {
-		QMessageBox::information(this, tr("Serial port selection"), tr("No serial port available!"));
-		return;
-	}
-	QString sel = QInputDialog::getItem(this, tr("Serial port selection"), tr("Please select a serial port hardware from the list:"), names, 0, false);
-	if (!sel.isEmpty())
-		for (int i = 0; i < ports.count(); i++)
-			if (names.at(i) == sel) {
-				leHost->setText(ports.at(i).portName());
-				return;
-			}
-}
-
-void ConnectionSelection::normalize(void)
-{
-	bool ok;
-	QString tmpHost = leHost->text();
-	int tmpPort = lePort->text().toInt(&ok);
-	switch (type) {
-	case Connection::Network:
-		if (tmpHost.isEmpty())
-			tmpHost = DEFAULT_NETWORK_HOST;
-		if (!ok || tmpPort <= 0)
-			tmpPort = DEFAULT_NETWORK_PORT;
-		host = tmpHost;
-		port = tmpPort;
-		break;
-	case Connection::SerialPort:
-		if (tmpHost.isEmpty())
-			tmpHost = DEFAULT_SERIAL_PORT;
-		if (!ok || tmpPort <= 0)
-			tmpPort = DEFAULT_SERIAL_BAUD;
-		serialPort = tmpHost;
-		serialSpeed = tmpPort;
-		break;
-	}
-}
-
-void ConnectionSelection::typeUpdate(void)
-{
-	normalize();
-	if (rbTypes[Connection::Network]->isChecked()) {
-		type = Connection::Network;
-		lHost->setText(tr("Host:"));
-		leHost->setText(host);
-		lPort->setText(tr("Port:"));
-		lePort->setText(QString::number(port));
-		pbScan->setVisible(false);
-	} else if (rbTypes[Connection::SerialPort]->isChecked()) {
-		type = Connection::SerialPort;
-		lHost->setText(tr("Serial port:"));
-		leHost->setText(serialPort);
-		lPort->setText(tr("Speed:"));
-		lePort->setText(QString::number(serialSpeed));
-		pbScan->setVisible(true);
-	}
-}
-
-void ConnectionSelection::accept(void)
-{
-	normalize();
-	if (!leHost->text().isEmpty())
-		QDialog::accept();
-}
-
-// ********************************************************************************
 
 Connection::Connection(QObject *parent) : QObject(parent) {}
 
@@ -147,7 +29,8 @@ bool Connection::init(void)
 		return false;
 	type = s->type;
 	switch (type) {
-	case Network:
+#ifdef ENABLE_NETWORK
+	case ConnectionSelection::Network:
 		pr_debug(tr("Connection::Network: %1, %2").arg(s->host).arg(s->port), LV_MSG);
 		con = new QTcpSocket(this);
 		host = QHostAddress(s->host);
@@ -160,7 +43,9 @@ bool Connection::init(void)
 			return false;
 		}
 		break;
-	case SerialPort:
+#endif
+#ifdef ENABLE_SERIALPORT
+	case ConnectionSelection::SerialPort:
 		pr_debug(tr("Connection::SerialPort: %1, %2").arg(s->serialPort).arg(s->serialSpeed), LV_MSG);
 		con = new QSerialPort(this);
 		serialPort()->setPortName(s->serialPort);
@@ -171,6 +56,7 @@ bool Connection::init(void)
 			return false;
 		}
 		break;
+#endif
 	default:
 		return false;
 	}

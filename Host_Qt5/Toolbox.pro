@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     common/conv.cpp \
     common/dial.cpp \
     common/information.cpp \
-    analog/analogtimebasectrl.cpp
+    analog/analogtimebasectrl.cpp \
+    common/connectionselection.cpp
 
 HEADERS  += mainwindow.h \
     connection.h \
@@ -49,7 +50,8 @@ HEADERS  += mainwindow.h \
     common/dial.h \
     common/information.h \
     analog/analogtimebasectrl.h \
-    common/debug.h
+    common/debug.h \
+    common/connectionselection.h
 
 TRANSLATIONS = toolbox_en.ts
 

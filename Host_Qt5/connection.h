@@ -1,40 +1,18 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include <QObject>
 #include <QtWidgets>
-#include <QTcpSocket>
-#include <QSerialPort>
-#include <QDialog>
+#include "connectionselection.h"
 #include "structures.h"
 
+#ifdef ENABLE_NETWORK
+#include <QTcpSocket>
+#endif
+#ifdef ENABLE_SERIALPORT
+#include <QSerialPort>
+#endif
+
 #define COMMUNICATION_WAIT	1000
-
-class ConnectionSelection : public QDialog
-{
-	Q_OBJECT
-	friend class Connection;
-public:
-	explicit ConnectionSelection(QWidget *parent = 0);
-
-public slots:
-	void accept(void);
-
-private slots:
-	void typeUpdate(void);
-	void scan(void);
-
-private:
-	void normalize(void);
-
-	QRadioButton *rbTypes[2];
-	QLineEdit *leHost, *lePort;
-	QLabel *lHost, *lPort;
-	QPushButton *pbScan, *pbOpen, *pbCancel;
-	int type;
-	QString host, serialPort;
-	int port, serialSpeed;
-};
 
 class Connection : public QObject
 {
@@ -43,8 +21,12 @@ class Connection : public QObject
 public:
 	explicit Connection(QObject *parent = 0);
 	~Connection(void);
+#ifdef ENABLE_NETWORK
 	QTcpSocket *tcpSocket(void) {return (QTcpSocket *)con;}
+#endif
+#ifdef ENABLE_SERIALPORT
 	QSerialPort *serialPort(void) {return (QSerialPort *)con;}
+#endif
 	bool init(void);
 
 signals:
@@ -89,8 +71,6 @@ private:
 	bool waitForReadAll(int counter = -1, int msec = COMMUNICATION_WAIT);
 	void report(void);
 	void report(info_t *info);
-
-	enum Types {Network = 0, SerialPort = 1};
 
 	struct counter_t {
 		counter_t(void) {reset();}
