@@ -11,4 +11,6 @@
 #define APB2_TIMER_CLK	(APB2_CLK * 2)
 #define BAUD		UART_BAUD
 
+#define BYTES(bits)	((bits + 7) / 8)
+
 #endif // INFO_H

@@ -1,15 +1,16 @@
-#include <stdio.h>
 #include <string.h>
 #include <instructions.h>
-#include "ctrl.h"
-#include "communication.h"
 #include "adc.h"
 #include "dac.h"
-#include "info.h"
 #include "timer.h"
 #include "handles.h"
+#include "ctrl.h"
+#include "uart.h"
+#include "info.h"
 
-volatile uint8_t pause;
+#define SEND_ADC_REQUEST
+
+volatile uint8_t pause = 1;
 
 void ctrlByteType(uint8_t type, uint32_t min, uint32_t max, uint32_t value)
 {
@@ -18,10 +19,10 @@ void ctrlByteType(uint8_t type, uint32_t min, uint32_t max, uint32_t value)
 	sendValue(min, bytes);
 	sendValue(max, bytes);
 	sendValue(value, bytes);
-	pollSending();
+	poolSending();
 }
 
-void ctrlDeviceInfo(void)
+static void ctrlDeviceInfo(void)
 {
 	sendChar(CMD_INFO);
 	sendValue(FW_VERSION, 4);
@@ -32,64 +33,45 @@ void ctrlDeviceInfo(void)
 
 void ctrlRootLoop(void)
 {
-	//char buff[64];
-	char id;
-	for (;;) {
-		while (adcTxBufferRequest) {
-			pause = 1;
-			sendData(adcTxBuffer, adcTxBufferLength);
-			adcTxBufferRequest--;
+#ifdef SEND_ADC_REQUEST
+	uint8_t req = adcTxBufferRequest;
+#endif
+	adcTxBufferRequest = 0;
+#ifdef SEND_ADC_REQUEST
+	while (req--) {
+		pause = 1;
+		sendData(adcTxBuffer, adcTxBufferLength);
+	}
+#endif
+	pause = 0;
+	switch (receiveChar()) {
+	case CMD_RESET:
+		pause = 1;
+		sendChar(CMD_ACK);
+		reset();
+		break;
+	case CMD_ANALOG:
+		pause = 1;
+		sendChar(CMD_ACK);
+		ctrlADCController(receiveChar());
+		break;
+	case CMD_TIMER:
+		sendChar(CMD_ACK);
+		ctrlTimerController();
+		break;
+	case CMD_CONTROLLER:
+		sendChar(CMD_ACK);
+		switch (receiveChar()) {
+		case CTRL_DAC_ID:
+			ctrlDACController();
+			break;
 		}
-		pollSending();
-		pause = 0;
-		switch (receiveChar(-1)) {
-		case CMD_RESET:
-			pause = 1;
-			sendChar(CMD_ACK);
-			reset();
-			break;
-		/*case CMD_PAUSE:
-			pause = 1;
-			sendChar(CMD_ACK);
-			break;*/
-		case CMD_ANALOG:
-			pause = 1;
-			sendChar(CMD_ACK);
-			switch (id = receiveChar(-1)) {
-			case CTRL_ADC_ID:
-				ctrlADCController(id);
-				break;
-			}
-			break;
-		case CMD_TIMER:
-			//pause = 1;
-			sendChar(CMD_ACK);
-			ctrlTimerController();
-			break;
-		case CMD_CONTROLLER:
-			//pause = 1;
-			sendChar(CMD_ACK);
-			switch (id = receiveChar(-1)) {
-			case CTRL_DAC1_ID:
-			case CTRL_DAC2_ID:
-				ctrlDACController(id);
-				break;
-			}
-			break;
-		case CMD_INFO:
-			pause = 1;
-			sendChar(CMD_ACK);
-			ctrlDeviceInfo();
-		case INVALID_ID:
-			break;
-		/*default:
-			sprintf(buff, "ADC[0]: %.3f\t ADC[1]: %.3f\r\n", (float)adc[0] / 4095.0 * 3.3, (float)adc[1] / 4095.0 * 3.3);
-			sendString(buff);
-			pollSending();
-			sprintf(buff, "ADC[0]: %u\t ADC[1]: %u\r\n", adc[0], adc[1]);
-			sendString(buff);
-			pollSending();
-			break;*/
-		}
+		break;
+	case CMD_INFO:
+		pause = 1;
+		sendChar(CMD_ACK);
+		ctrlDeviceInfo();
+	case INVALID_ID:
+		break;
 	}
 }
