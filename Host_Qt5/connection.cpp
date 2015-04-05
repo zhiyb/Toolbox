@@ -47,8 +47,8 @@ bool Connection::init(void)
 #ifdef ENABLE_SERIALPORT
 	case ConnectionSelection::SerialPort:
 		pr_debug(tr("Connection::SerialPort: %1, %2").arg(s->serialPort).arg(s->serialSpeed), LV_MSG);
-		con = new QSerialPort(this);
-		serialPort()->setPortName(s->serialPort);
+		con = new QSerialPort(s->serialInfo, this);
+		//serialPort()->setPortName(s->serialPort);
 		serialPort()->setBaudRate(s->serialSpeed);
 		serialPort()->open(QIODevice::ReadWrite);
 		if (!serialPort()->isOpen()) {
