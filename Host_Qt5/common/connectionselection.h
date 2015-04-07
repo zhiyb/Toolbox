@@ -11,7 +11,7 @@
 #ifdef ENABLE_NETWORK
 #include <QTcpSocket>
 #include <QHostAddress>
-#define DEFAULT_NETWORK_HOST	"192.168.6.48"
+#define DEFAULT_NETWORK_HOST	"192.168.0.36"
 #define DEFAULT_NETWORK_PORT	1111
 #endif
 

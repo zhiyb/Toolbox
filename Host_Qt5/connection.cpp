@@ -370,7 +370,7 @@ analog_t *Connection::readAnalog(void)
 	analog->buffer.size = readValue(4);
 	analog->timer = readTimer();
 	pushInfo(analog);
-	pr_debug(tr("0x%1").arg((uint32_t)analog, 0, 16), LV_INFO);
+	pr_debug("", LV_INFO) << analog;
 	return analog;
 }
 

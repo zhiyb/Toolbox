@@ -23,10 +23,10 @@ void main(void)
 	vec4 position;
 	float v;
 	//	time index   total time  total grid	size	   centralise
-	position.x = index / frequency / timebase / float(hCount) * 2.f - 1.f;
+	position.x = index / frequency / timebase / float(hCount) * 2.0 - 1.0;
 
 	// ADC value
-	v = data * 2147483648.f + vOffset;
+	v = data * 2147483648.0 + vOffset;
 	// Voltage
 	v = v / float(maxValue) * reference + offset;
 	// Total grid
@@ -34,8 +34,8 @@ void main(void)
 	// Screen position
 	position.y = v / float(vCount / 2);
 
-	position.z = 0.f;
-	position.w = 1.f;
+	position.z = 0.0;
+	position.w = 1.0;
 	gl_Position.xyzw = projection * modelView * position;
-	gl_PointSize = 2.f;
+	gl_PointSize = 2.0;
 }
