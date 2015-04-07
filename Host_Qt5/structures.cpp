@@ -173,7 +173,7 @@ bool analog_t::dataHandler(const data_t &data)
 bool analog_t::updateRequired() const
 {
 	bool upd = channelsEnabled(false, true) != channelsEnabled(true, true);
-	upd |= !scanMode(true) && buffer.updateRequired();
+	upd |= buffer.updateRequired();
 	upd |= timebase.updateRequired();
 	upd |= trigger.sourceUpdateRequired();
 	if (trigger.enabled()) {
