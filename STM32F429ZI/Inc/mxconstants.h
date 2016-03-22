@@ -1,14 +1,10 @@
 /**
   ******************************************************************************
-  * @file    stm32f4xx_hal_i2s_ex.h
-  * @author  MCD Application Team
-  * @version V1.1.0
-  * @date    19-June-2014
-  * @brief   Header file of I2S HAL module.
+  * File Name          : mxconstants.h
+  * Description        : This file contains the common defines of the application
   ******************************************************************************
-  * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2014 STMicroelectronics</center></h2>
+  * COPYRIGHT(c) 2016 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -33,54 +29,25 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   *
   ******************************************************************************
-  */ 
-
-/* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32F4xx_HAL_I2S_EX_H
-#define __STM32F4xx_HAL_I2S_EX_H
-
-#ifdef __cplusplus
- extern "C" {
-#endif
-
+  */
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal_def.h"  
 
-/** @addtogroup STM32F4xx_HAL_Driver
-  * @{
-  */
+/* USER CODE BEGIN Includes */
 
-/** @addtogroup I2SEx
-  * @{
-  */ 
+/* USER CODE END Includes */
 
-/* Exported types ------------------------------------------------------------*/ 
-/* Exported constants --------------------------------------------------------*/  
-/* Exported macro ------------------------------------------------------------*/
-/* Exported functions --------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
 
-/* Extended features functions **************************************************/
- /* Blocking mode: Polling */
-HAL_StatusTypeDef HAL_I2SEx_TransmitReceive(I2S_HandleTypeDef *hi2s, uint16_t *pTxData, uint16_t *pRxData, uint16_t Size, uint32_t Timeout);
- /* Non-Blocking mode: Interrupt */
-HAL_StatusTypeDef HAL_I2SEx_TransmitReceive_IT(I2S_HandleTypeDef *hi2s, uint16_t *pTxData, uint16_t *pRxData, uint16_t Size);
-/* Non-Blocking mode: DMA */
-HAL_StatusTypeDef HAL_I2SEx_TransmitReceive_DMA(I2S_HandleTypeDef *hi2s, uint16_t *pTxData, uint16_t *pRxData, uint16_t Size);
+/* USER CODE BEGIN Private defines */
 
-HAL_StatusTypeDef I2SEx_TransmitReceive_IT(I2S_HandleTypeDef *hi2s);
+/* USER CODE END Private defines */
+
 /**
   * @}
   */ 
 
 /**
   * @}
-  */
-
-#ifdef __cplusplus
-}
-#endif
-
-
-#endif /* __STM32F4xx_HAL_I2S_EX_H */
+*/ 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

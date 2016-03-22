@@ -6,7 +6,7 @@
 #include "handles.h"
 #include "ctrl.h"
 
-const static char * const channelName[] = {"Channel 1", "Channel 2"};
+static const char * const channelName[] = {"Channel 1", "Channel 2"};
 static const uint8_t channels[] = {DAC_CHANNEL_1, DAC_CHANNEL_2};
 
 void initDAC(void)
