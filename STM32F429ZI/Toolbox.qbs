@@ -1,7 +1,7 @@
 import qbs
 
 Project {
-    property string device: "stm32f429"
+    property string device: "STM32F429xx"
     property bool build_CMSIS_DSP: false
 
     references: [
@@ -29,7 +29,7 @@ Project {
 
     CppApplication {
         Depends {name: "CMSIS"}
-        Depends {name: "stm32f4-HAL"}
+        Depends {name: "STM32-HAL"}
         Depends {name: "configurations"}
         cpp.linkerScripts: ["STM32F429ZI_FLASH.ld"]
         cpp.includePaths: ["../inc"]
@@ -37,23 +37,8 @@ Project {
         files: [
             "STM32F429ZI_FLASH.ld",
             "../inc/instructions.h",
-            "Inc/adc.h",
-            "Inc/ctrl.h",
-            "Inc/dac.h",
-            "Inc/handles.h",
-            "Inc/info.h",
-            "Inc/stm32f4xx_it.h",
-            "Inc/timer.h",
-            "Inc/uart.h",
-            "Src/adc.c",
-            "Src/ctrl.c",
-            "Src/dac.c",
-            "Src/main.c",
-            "Src/newlib_stubs.c",
-            "Src/stm32f4xx_hal_msp.c",
-            "Src/stm32f4xx_it.c",
-            "Src/timer.c",
-            "Src/uart.c",
+            "Inc/*.h",
+            "Src/*.c",
         ]
     }
 }
