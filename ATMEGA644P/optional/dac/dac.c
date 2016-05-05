@@ -24,6 +24,7 @@ static void setDAC(uint8_t ch, uint8_t data);
 
 void initDAC(void)
 {
+#ifdef DAC_USE_PORTD
 	// Port initialisation
 	DDRD |= DAC_LOAD | DAC_DATA | DAC_CLK;
 	PORTD |= DAC_LOAD | DAC_DATA | DAC_CLK;
@@ -38,8 +39,20 @@ void initDAC(void)
 	UBRR1L = F_CPU / 1000000 / 2 - 1;
 	// Clear transmit complete flag
 	//UCSR1A |= _BV(TXC1);
-	
-	dacReady = 1;
+#else
+	// Port initialisation
+	DDRB |= DAC_LOAD | DAC_DATA | DAC_CLK;
+	PORTB |= DAC_LOAD | DAC_DATA | DAC_CLK;
+	// Use native SPI
+	// Master SPI mode, MSB first, data setup at rising edge
+	// Clock frequency max. 1MHz
+	SPCR = _BV(MSTR) | _BV(CPHA) | _BV(SPR0);
+	SPSR = _BV(SPI2X);
+	SPCR |= _BV(SPE);
+	// Clear transmit complete flag
+#endif
+
+	dacReady = 2;
 	uint8_t i;
 	for (i = 0; i < CTRL_DAC_CHANNELS; i++)
 		setDAC(i, 0);
@@ -47,20 +60,26 @@ void initDAC(void)
 
 static void setDAC(uint8_t ch, uint8_t data)
 {
-	while (!dacReady);
-	UDR1 = (ch << 1) + 1;	// RNG = 1 for gain of 2x from ref
+	while (dacReady != 2);
+	// RNG = 1 for gain of 2x from ref
+#ifdef DAC_USE_PORTD
+	UDR1 = (ch << 1) + 1;
+#else
+	SPDR = (ch << 1) + 1;
+#endif
 	dacReady = 0;
 	dac_data = dacData[ch] = data;
 
-	/*while (!(UCSR1A & _BV(UDRE1)));
-	UDR1 = data;
-	UCSR1A |= _BV(TXC1);
-	UCSR1B |= _BV(TXCIE1);*/
-
+#ifdef DAC_USE_PORTD
 	// Enable data register empty interrupt
 	UCSR1B |= _BV(UDRIE1);
+#else
+	// Enable SPI interrupt
+	SPCR |= _BV(SPIE);
+#endif
 }
 
+#ifdef DAC_USE_PORTD
 // USART1 Data register empty interrupt
 ISR(USART1_UDRE_vect)
 {
@@ -77,9 +96,27 @@ ISR(USART1_TX_vect, ISR_NOBLOCK)
 	//_NOP();		// tW(LOAD) min. 250ns
 	// Disable transmit complete interrupt
 	UCSR1B &= ~_BV(TXCIE1);
-	dacReady = 1;
+	dacReady = 2;
 	PORTD |= DAC_LOAD;
 }
+#else
+// SPI Transmit complete interrupt
+ISR(SPI_STC_vect, ISR_NOBLOCK)
+{
+	if (dacReady == 0) {
+		SPDR = dac_data;
+		dacReady = 1;
+		return;
+	}
+
+	PORTB &= ~DAC_LOAD;	// Lowing DAC_LOAD to load
+	//_NOP();		// tW(LOAD) min. 250ns
+	// Disable SPI interrupt
+	SPCR &= ~_BV(SPIE);
+	dacReady = 2;
+	PORTB |= DAC_LOAD;
+}
+#endif
 
 void ctrlDACControllerGenerate(void)
 {

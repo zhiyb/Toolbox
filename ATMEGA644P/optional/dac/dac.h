@@ -16,9 +16,15 @@ extern "C" {
 
 // DAC chip TLV5620 uses PORTD with UART1
 // DAC_LDAC set to LOW by hardware
+#ifdef DAC_USE_PORTD
 #define DAC_LOAD	(1 << 2)
 #define DAC_DATA	(1 << 3)
 #define DAC_CLK		(1 << 4)
+#else
+#define DAC_LOAD	(1 << 4)
+#define DAC_DATA	(1 << 5)
+#define DAC_CLK		(1 << 7)
+#endif
 
 void initDAC(void);
 void ctrlDACControllerGenerate(void);
