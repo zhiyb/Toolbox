@@ -5,8 +5,8 @@ Project {
     property bool build_CMSIS_DSP: false
 
     references: [
-        "../../Drivers/CMSIS/cmsis.qbs",
-        "../../Drivers/STM32F4xx_HAL_Driver"
+        "../../embedded-drivers/CMSIS/cmsis.qbs",
+        "../../embedded-drivers/STM32F4xx_HAL_Driver"
     ]
 
     Product {
@@ -35,10 +35,9 @@ Project {
         cpp.includePaths: ["../inc"]
 
         files: [
-            "STM32F429ZI_FLASH.ld",
             "../inc/instructions.h",
-            "Inc/*.h",
-            "Src/*.c",
+            "Inc/*",
+            "Src/*",
         ]
     }
 }
